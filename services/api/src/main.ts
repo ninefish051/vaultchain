@@ -40,7 +40,7 @@ export async function buildServer() {
     const db = getDb();
     await migrate(db);
     store = createPgStore(db);
-    if (tryChain() && process.env.INDEXER_ENABLED !== "false") startIndexer(db, (m) => app.log.info(m));
+    if (tryChain() && process.env.INDEXER_ENABLED !== "false") startIndexer(db, (m) => app.log.info(m), (m) => app.log.error(m));
   } else {
     app.log.warn("DATABASE_URL not set: serving the in-memory demo catalogue");
     store = createDemoStore();

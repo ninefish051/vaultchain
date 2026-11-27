@@ -85,6 +85,12 @@ pnpm typecheck && pnpm test         # TypeScript packages (pricing, matching, AP
 pnpm build                          # Next.js production build
 ```
 
+End-to-end on a local chain (anvil + Postgres + API with indexer): deploy, sync deployments, start the API with `CHAIN_ID=31337 INDEXER_POLL_MS=1000 PORT=4002`, then
+
+```bash
+API_URL=http://localhost:4002 DATABASE_URL=… pnpm --filter @vaultchain/api e2e   # escrow sale + swap, 15 checks
+```
+
 ## Configuration
 
 See [`.env.example`](.env.example) for contracts and [`infra/.env.example`](infra/.env.example) for services. Secrets (signer keys, API keys) live in AWS Secrets Manager in production and are never committed.

@@ -42,7 +42,7 @@ async function settleListings(db: Db, tradeId: string, outcome: "sold" | "freed"
   );
 }
 
-export function startIndexer(db: Db, log: (msg: string) => void) {
+export function startIndexer(db: Db, log: (msg: string) => void, warn: (msg: string) => void = log) {
   const { chainId, publicClient, deployment } = chainContext();
   const contracts: { name: string; address: Address; abi: Abi }[] = [
     { name: "escrow", address: deployment.escrow, abi: vaultEscrowAbi as Abi },
@@ -139,6 +139,10 @@ export function startIndexer(db: Db, log: (msg: string) => void) {
       return record(contract, event, id ?? null, a, l);
     }
 
+    // Admin events (RoleGranted, FeeUpdated, ConfigUpdated, ApprovalForAll…) carry no trade id: keep them in the log only.
+    const id = (a.orderId ?? a.swapId ?? a.tokenId ?? a.offerId) as bigint | Hex | undefined;
+    if (id === undefined) return record(contract, event, null, a, l);
+
     if (contract === "nft") {
       const tokenId = (a.tokenId as bigint).toString();
       if (event === "SlabMinted") {
@@ -205,7 +209,7 @@ export function startIndexer(db: Db, log: (msg: string) => void) {
   (async () => {
     log(`indexer started on chain ${chainId}`);
     while (!stopped) {
-      await tick().catch((e) => log(`indexer tick failed: ${(e as Error).message}`));
+      await tick().catch((e) => warn(`indexer tick failed: ${(e as Error).message}`));
       await new Promise((r) => setTimeout(r, POLL_MS));
     }
   })();
