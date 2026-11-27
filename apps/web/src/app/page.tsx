@@ -23,18 +23,18 @@ export default function Home() {
 
   return (
     <div className="container-page">
-      <section className="relative mt-10 overflow-hidden rounded-3xl border border-ink-600 bg-gradient-to-br from-ink-800 via-ink-900 to-ink-900 p-8 sm:p-12">
+      <section className="relative mt-6 overflow-hidden rounded-3xl border border-ink-600 bg-gradient-to-br from-ink-800 via-ink-900 to-ink-900 p-6 sm:mt-10 sm:p-12">
         <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-gold/10 blur-3xl" />
         <div className="relative max-w-2xl">
           <span className="chip border-gold/40 bg-gold/10 text-gold">On-chain escrow · HashKey Chain</span>
-          <h1 className="mt-4 text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
+          <h1 className="mt-4 text-3xl font-bold leading-tight tracking-tight sm:text-5xl">
             Graded cards, traded <span className="text-gold">without refund games.</span>
           </h1>
           <p className="mt-4 text-neutral-300">
             Both sides lock a deposit. The vault inspects. The contract settles. Fair prices come from eBay, PriceCharting, Carousell and 集换社 sales,
             signed on-chain.
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
+          <div className="mt-8 grid grid-cols-1 gap-3 sm:flex sm:flex-wrap">
             <Link href="/market" className="btn-gold">
               Browse the market
             </Link>

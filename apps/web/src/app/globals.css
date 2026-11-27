@@ -30,7 +30,7 @@ body {
     @apply btn border border-down/50 text-down hover:bg-down/10;
   }
   .input {
-    @apply w-full rounded-xl border border-ink-500 bg-ink-900 px-3 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-gold focus:outline-none;
+    @apply w-full rounded-xl border border-ink-500 bg-ink-900 px-3 py-2.5 text-base text-neutral-100 sm:text-sm placeholder:text-neutral-500 focus:border-gold focus:outline-none;
   }
   .label {
     @apply mb-1.5 block text-xs font-medium uppercase tracking-wide text-neutral-400;
@@ -40,6 +40,11 @@ body {
   }
   .h-title {
     @apply text-2xl font-bold tracking-tight sm:text-3xl;
+  }
+  /* phones: no tap highlight flash on links/buttons */
+  a,
+  button {
+    -webkit-tap-highlight-color: transparent;
   }
   .muted {
     @apply text-sm text-neutral-400;

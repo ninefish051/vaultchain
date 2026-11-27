@@ -14,6 +14,7 @@ import { bps, cardTitle, gradeLabel, short, usd } from "@/lib/format";
 import { buildOrderTerms, orderTypedData, toJson } from "@/lib/terms";
 import { CardImage } from "@/components/CardTile";
 import { Badge, Empty, KV, Spinner, TxStatus } from "@/components/ui";
+import { MobileActionBar } from "@/components/MobileTabBar";
 
 export default function ListingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -83,7 +84,7 @@ export default function ListingPage({ params }: { params: Promise<{ id: string }
         ← {l.card.name} prices
       </Link>
       <div className="mt-3 grid gap-8 lg:grid-cols-[400px_1fr]">
-        <CardImage src={l.images[0] ?? l.card.imageUrl} alt={l.card.name} className="aspect-[3/4] border border-ink-600" />
+        <CardImage src={l.images[0] ?? l.card.imageUrl} alt={l.card.name} className="mx-auto aspect-[3/4] w-full max-w-[260px] border border-ink-600 sm:max-w-none" />
         <div>
           <div className="flex flex-wrap gap-2">
             <Badge tone="gold">{gradeLabel(l.card)}</Badge>
@@ -170,6 +171,23 @@ export default function ListingPage({ params }: { params: Promise<{ id: string }
           {!deployment && isConnected && <p className="mt-3 text-xs text-gold">Switch to a network where VaultChain is deployed to trade.</p>}
         </div>
       </div>
+      {!mine && (
+        <MobileActionBar>
+          <div className="min-w-0 flex-1">
+            <div className="text-[11px] uppercase text-neutral-500">{l.type === "vault" ? "Buy now" : "Your price"}</div>
+            <div className="text-lg font-bold">{usd(l.type === "vault" ? l.priceUsd : price)}</div>
+          </div>
+          {l.type === "vault" ? (
+            <button className="btn-gold flex-1" disabled={!isConnected || !deployment || tx.state.status === "pending"} onClick={buyVault}>
+              {isConnected ? "Buy" : "Connect wallet"}
+            </button>
+          ) : (
+            <button className="btn-gold flex-1" disabled={!isConnected || !deployment || !price} onClick={proposeOrder}>
+              {isConnected ? "Sign order" : "Connect wallet"}
+            </button>
+          )}
+        </MobileActionBar>
+      )}
     </div>
   );
 }

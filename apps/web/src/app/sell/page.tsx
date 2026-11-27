@@ -138,7 +138,7 @@ function Sell() {
               </select>
               <p className="mt-1 text-xs text-neutral-500">Missing a card? The vault adds new card types to the price catalogue on request.</p>
             </div>
-            <div className="grid grid-cols-[110px_1fr_auto] gap-2">
+            <div className="grid grid-cols-[96px_1fr] gap-2 sm:grid-cols-[110px_1fr_auto]">
               <div>
                 <label className="label">Grader</label>
                 <select className="input" value={grader} onChange={(e) => setGrader(e.target.value as Grader)}>
@@ -148,11 +148,11 @@ function Sell() {
                 </select>
               </div>
               <div>
-                <label className="label">Certificate number</label>
-                <input className="input" value={cert} onChange={(e) => setCert(e.target.value.replace(/\D/g, ""))} placeholder="e.g. 12345678" />
+                <label className="label">Cert number</label>
+                <input className="input" inputMode="numeric" value={cert} onChange={(e) => setCert(e.target.value.replace(/\D/g, ""))} placeholder="e.g. 12345678" />
               </div>
               {grader === "PSA" && (
-                <button className="btn-ghost self-end" disabled={cert.length < 6} onClick={verifyCert}>
+                <button className="btn-ghost col-span-2 self-end sm:col-span-1" disabled={cert.length < 6} onClick={verifyCert}>
                   Verify
                 </button>
               )}

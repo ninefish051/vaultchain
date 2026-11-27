@@ -11,6 +11,7 @@ import { CardImage, ListingTile } from "@/components/CardTile";
 import { PriceChart } from "@/components/PriceChart";
 import { SalesTable } from "@/components/SalesTable";
 import { Badge, Change, Empty, Section, Spinner, Stat } from "@/components/ui";
+import { MobileActionBar } from "@/components/MobileTabBar";
 
 export default function CardPage({ params }: { params: Promise<{ cardKey: string }> }) {
   const { cardKey } = use(params);
@@ -26,7 +27,7 @@ export default function CardPage({ params }: { params: Promise<{ cardKey: string
         ← All cards
       </Link>
       <div className="mt-3 grid gap-8 lg:grid-cols-[360px_1fr]">
-        <CardImage src={card.imageUrl} alt={card.name} className="aspect-[3/4] border border-ink-600" />
+        <CardImage src={card.imageUrl} alt={card.name} className="mx-auto aspect-[3/4] w-full max-w-[260px] border border-ink-600 sm:max-w-none" />
         <div>
           <div className="flex flex-wrap gap-2">
             <Badge tone="gold">{gradeLabel(card)}</Badge>
@@ -59,6 +60,26 @@ export default function CardPage({ params }: { params: Promise<{ cardKey: string
         </div>
       </div>
 
+      <MobileActionBar>
+        <div className="min-w-0 flex-1">
+          <div className="text-[11px] uppercase text-neutral-500">Fair value</div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-lg font-bold">{usd(price?.fairValueUsd)}</span>
+            <Change value={price?.change24hPct} className="text-xs" />
+          </div>
+        </div>
+        {listings.length > 0 ? (
+          <a href="#for-sale" className="btn-gold flex-1">
+            {listings.length} for sale
+          </a>
+        ) : (
+          <Link href={`/sell?cardKey=${card.cardKey}`} className="btn-ghost flex-1">
+            Sell yours
+          </Link>
+        )}
+      </MobileActionBar>
+
+      <div id="for-sale" className="scroll-mt-20" />
       <Section title={`For sale (${listings.length})`} action={<Link href={`/sell?cardKey=${card.cardKey}`} className="text-sm text-gold">Sell this card →</Link>}>
         {listings.length === 0 ? (
           <Empty title="No one is selling this card right now">Set a price alert from your favourites, or ask the agent to watch it.</Empty>

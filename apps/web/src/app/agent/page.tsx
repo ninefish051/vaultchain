@@ -65,7 +65,7 @@ export default function AgentPage() {
   const end = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    end.current?.scrollIntoView({ behavior: "smooth" });
+    if (messages.length > 0) end.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [messages, busy]);
 
   async function send(text: string) {
@@ -95,16 +95,22 @@ export default function AgentPage() {
         title="Buyer agent"
         sub="Ask in plain language. The agent searches the catalogue, checks fair value against recent sales, negotiates with seller agents and drafts orders or swaps. It never signs or pays: you approve every payment in your wallet."
       />
-      <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
-        <ShieldCheck className="h-4 w-4 text-gold" />
-        <span className="text-neutral-400">Spending limit per order (USD)</span>
-        <input className="input w-32" type="number" inputMode="decimal" min={0} placeholder="no limit" value={maxPerOrder} onChange={(e) => setMaxPerOrder(e.target.value ? Number(e.target.value) : "")} />
-        <span className="text-neutral-400">Session budget</span>
-        <input className="input w-32" type="number" inputMode="decimal" min={0} placeholder="no limit" value={budget} onChange={(e) => setBudget(e.target.value ? Number(e.target.value) : "")} />
-        {spentUsd > 0 && <span className="text-xs text-neutral-500">drafted so far ${spentUsd.toLocaleString()}</span>}
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:flex sm:items-end">
+        <div className="col-span-2 flex items-center gap-2 text-sm text-neutral-400 sm:col-span-1 sm:pb-3">
+          <ShieldCheck className="h-4 w-4 text-gold" /> Spending limits
+        </div>
+        <div>
+          <label className="label">Per order (USD)</label>
+          <input className="input sm:w-36" type="number" inputMode="decimal" min={0} placeholder="no limit" value={maxPerOrder} onChange={(e) => setMaxPerOrder(e.target.value ? Number(e.target.value) : "")} />
+        </div>
+        <div>
+          <label className="label">Session budget</label>
+          <input className="input sm:w-36" type="number" inputMode="decimal" min={0} placeholder="no limit" value={budget} onChange={(e) => setBudget(e.target.value ? Number(e.target.value) : "")} />
+        </div>
+        {spentUsd > 0 && <span className="col-span-2 text-xs text-neutral-500 sm:pb-3">drafted so far ${spentUsd.toLocaleString()}</span>}
       </div>
 
-      <div className="panel mt-4 flex min-h-[420px] flex-col p-4">
+      <div className="panel mt-4 flex min-h-[50vh] flex-col p-3 sm:min-h-[420px] sm:p-4">
         {messages.length === 0 && (
           <div className="my-auto grid gap-2">
             {SUGGESTIONS.map((s) => (
@@ -132,8 +138,9 @@ export default function AgentPage() {
         <div ref={end} />
       </div>
 
+      {/* phones: composer pinned above the tab bar */}
       <form
-        className="mt-3 flex gap-2"
+        className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] mt-3 flex gap-2 rounded-2xl bg-ink-900/95 py-2 backdrop-blur md:static md:bottom-auto md:bg-transparent md:p-0"
         onSubmit={(e) => {
           e.preventDefault();
           send(input);

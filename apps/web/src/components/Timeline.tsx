@@ -4,12 +4,12 @@ import { Check } from "lucide-react";
 export function Timeline({ steps, current, failed }: { steps: string[]; current: number; failed?: string }) {
   return (
     <div className="panel p-5">
-      <ol className="flex flex-wrap gap-y-4">
+      <ol className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-y-4">
         {steps.map((s, i) => {
           const done = i < current;
           const active = i === current;
           return (
-            <li key={s} className="flex min-w-[120px] flex-1 items-center gap-2">
+            <li key={s} className="flex items-center gap-2 sm:min-w-[120px] sm:flex-1">
               <span
                 className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold ${
                   done ? "border-gold bg-gold text-ink-900" : active ? "border-gold text-gold" : "border-ink-500 text-neutral-500"
