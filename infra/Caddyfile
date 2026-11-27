@@ -1,9 +1,6 @@
-# TLS certificates are issued automatically. Point these DNS records (Route 53) at the Elastic IP.
-{$DOMAIN} {
-	encode gzip
-	reverse_proxy web:3000
-}
-
+# TLS certificates are issued automatically. Point these DNS records at the Elastic IP
+# (DNS only, not proxied by Cloudflare). The frontend on {$DOMAIN} is served by Cloudflare
+# Workers, not by this host: see infra/cloudflare.md.
 api.{$DOMAIN} {
 	encode gzip
 	reverse_proxy api:4000

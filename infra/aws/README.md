@@ -1,6 +1,6 @@
 # AWS deployment (ap-southeast-1)
 
-Hackathon / v1 topology: one EC2 host running Docker Compose behind an Elastic IP. The Elastic IP matters: HSP only accepts MCP calls from allow-listed IPs.
+Hackathon / v1 topology: one EC2 host running the services with Docker Compose behind an Elastic IP. The frontend is not on this host; it runs on Cloudflare Workers ([../cloudflare.md](../cloudflare.md)). The Elastic IP matters: HSP only accepts MCP calls from allow-listed IPs.
 
 | Resource | Purpose | Notes |
 |---|---|---|
@@ -10,7 +10,7 @@ Hackathon / v1 topology: one EC2 host running Docker Compose behind an Elastic I
 | Secrets Manager `vaultchain/prod` | JSON: `ORACLE_SIGNER_KEY`, `RELAYER_KEY`, `ANTHROPIC_API_KEY`, `EBAY_*`, `PRICECHARTING_TOKEN`, `PSA_API_TOKEN`, `SHIPPING_ENC_KEY`, `INTERNAL_TOKEN` | loaded by `load-secrets.sh` |
 | S3 `vaultchain-evidence` | price evidence snapshots, inspection photos | optional for the demo |
 | CloudWatch Logs `/vaultchain/prod` | container logs (awslogs driver) | |
-| Route 53 | `DOMAIN`, `api.DOMAIN`, `agent.DOMAIN` → Elastic IP | Caddy issues TLS certificates |
+| DNS (Cloudflare) | `api.DOMAIN`, `agent.DOMAIN` → Elastic IP, proxy off | Caddy issues TLS certificates. `DOMAIN` itself points at the Cloudflare Worker serving the frontend: see [../cloudflare.md](../cloudflare.md) |
 
 Security group (EC2): inbound 80/443 from anywhere, 22 from your IP only (or use SSM Session Manager and close 22).
 

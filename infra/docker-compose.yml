@@ -61,18 +61,8 @@ services:
     environment: { PORT: "4100", API_URL: "http://api:4000" }
     expose: ["4100"]
 
-  web:
-    <<: *service
-    profiles: [app]
-    build:
-      context: ..
-      dockerfile: infra/docker/Dockerfile.web
-      args:
-        NEXT_PUBLIC_API_URL: https://api.${DOMAIN}
-        NEXT_PUBLIC_AGENT_URL: https://agent.${DOMAIN}
-        NEXT_PUBLIC_CHAIN_ID: ${CHAIN_ID:-133}
-        NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${WALLETCONNECT_PROJECT_ID:-}
-    expose: ["3000"]
+  # The marketplace frontend (apps/web) is not served from here: it runs on Cloudflare Workers.
+  # See infra/cloudflare.md.
 
   caddy:
     profiles: [app]
@@ -83,7 +73,7 @@ services:
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy:/data
-    depends_on: [web, api, agent]
+    depends_on: [api, agent]
 
 volumes:
   pgdata:

@@ -37,7 +37,7 @@ packages/
   db/                      Postgres schema, migrations, repository
   chain/                   viem clients for services
   hsp/                     HSP Agentic Payment MCP client
-infra/                     Dockerfiles, docker-compose, Caddy, AWS (EC2 + Elastic IP, RDS, Secrets Manager)
+infra/                     Dockerfiles, docker-compose, Caddy, AWS (EC2 + Elastic IP, RDS, Secrets Manager), Cloudflare notes
 docs/                      technical plan
 ```
 
@@ -108,11 +108,13 @@ See [`.env.example`](.env.example) for contracts and [`infra/.env.example`](infr
 | `INTERNAL_TOKEN` | api, agent | lets the seller agent read a listing's private auto-accept floor |
 | `HSP_MCP_URL`, `HSP_MERCHANT_NAME` | api, keeper | the server IP must be allow-listed by HSP |
 | `ANTHROPIC_API_KEY`, `AGENT_MODEL` | agent | default `claude-opus-5-5` |
-| `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_AGENT_URL`, `NEXT_PUBLIC_CHAIN_ID`, `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | web | build-time |
+| `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_AGENT_URL`, `NEXT_PUBLIC_CHAIN_ID`, `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | web | build-time, set where the Cloudflare build runs |
+| `CORS_ORIGINS` | api, agent | comma-separated frontend origins (Cloudflare domain and `workers.dev` URL) |
 
 ## Deployment
 
-AWS ap-southeast-1: one EC2 instance with an Elastic IP (allow-listed by HSP) running `infra/docker-compose.yml`, RDS Postgres, Secrets Manager, CloudWatch Logs and Route 53. See [infra/aws/README.md](infra/aws/README.md).
+- **Frontend:** Cloudflare Workers (OpenNext adapter), DNS on Cloudflare. See [infra/cloudflare.md](infra/cloudflare.md).
+- **Services:** AWS ap-southeast-1: one EC2 instance with an Elastic IP (allow-listed by HSP) running `infra/docker-compose.yml`, RDS Postgres, Secrets Manager and CloudWatch Logs. See [infra/aws/README.md](infra/aws/README.md).
 
 ## Status
 

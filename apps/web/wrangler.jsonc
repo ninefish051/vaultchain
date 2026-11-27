@@ -1,0 +1,22 @@
+// Cloudflare Workers deployment of the marketplace (OpenNext adapter).
+// Build + deploy: pnpm --filter @vaultchain/web deploy:cf
+// NEXT_PUBLIC_* values are inlined at build time, so set them in the build environment
+// (shell, CI or Workers Builds settings), not as Worker vars.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "vaultchain-web",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-11-20",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "vaultchain-web"
+    }
+  ],
+  "observability": { "enabled": true }
+}
