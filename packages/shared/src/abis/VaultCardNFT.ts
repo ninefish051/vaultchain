@@ -31,6 +31,19 @@ export const vaultCardNFTAbi = [
   },
   {
     "type": "function",
+    "name": "ESCROW_ROLE",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "MINTER_ROLE",
     "inputs": [],
     "outputs": [
@@ -165,6 +178,25 @@ export const vaultCardNFTAbi = [
   },
   {
     "type": "function",
+    "name": "exists",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "getApproved",
     "inputs": [
       {
@@ -275,6 +307,19 @@ export const vaultCardNFTAbi = [
         "name": "tokenId",
         "type": "uint256",
         "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "lockSlab",
+    "inputs": [
+      {
+        "name": "slabId",
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
     "outputs": [],
@@ -479,6 +524,25 @@ export const vaultCardNFTAbi = [
   },
   {
     "type": "function",
+    "name": "slabLockedBy",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "slabOf",
     "inputs": [
       {
@@ -582,6 +646,19 @@ export const vaultCardNFTAbi = [
         "name": "tokenId",
         "type": "uint256",
         "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "unlockSlab",
+    "inputs": [
+      {
+        "name": "slabId",
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
     "outputs": [],
@@ -733,6 +810,25 @@ export const vaultCardNFTAbi = [
   },
   {
     "type": "event",
+    "name": "SlabLocked",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "escrow",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "SlabMinted",
     "inputs": [
       {
@@ -783,6 +879,25 @@ export const vaultCardNFTAbi = [
         "type": "uint8",
         "indexed": false,
         "internalType": "enum VaultCardNFT.Custody"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SlabUnlocked",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "escrow",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
       }
     ],
     "anonymous": false
@@ -938,8 +1053,40 @@ export const vaultCardNFTAbi = [
   },
   {
     "type": "error",
+    "name": "NotLocker",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "NotTokenOwner",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SlabAlreadyMinted",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "SlabBusy",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "lockedBy",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
     "type": "error",

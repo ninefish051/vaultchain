@@ -7,6 +7,7 @@ import { ORDER_STATUS, fromUsd6, vaultEscrowAbi } from "@vaultchain/shared";
 import { ensureAllowance, useDeployment, useTx } from "@/lib/contracts";
 import { short, timeLeft, usd } from "@/lib/format";
 import { HspPay } from "@/components/HspPay";
+import { ShippingForm, VaultAddress } from "@/components/ShippingForm";
 import { Timeline } from "@/components/Timeline";
 import { Credits } from "@/components/Credits";
 import { Badge, Empty, KV, PageHeader, Spinner, TxStatus } from "@/components/ui";
@@ -31,6 +32,7 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
   const publicClient = usePublicClient();
   const tx = useTx();
   const [tracking, setTracking] = useState("");
+  const [hspActive, setHspActive] = useState(false);
 
   const { data: o, refetch, isLoading } = useReadContract({
     address: deployment?.escrow,
@@ -107,15 +109,18 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
                 <p className="text-sm text-neutral-300">
                   {status === "Signed" ? "Lock your deposit" : "Pay the full price"}: <b className="text-white">{usd(fromUsd6(due), true)}</b>
                 </p>
-                <button className="btn-gold" onClick={payWithWallet} disabled={tx.state.status === "pending"}>
-                  Pay from wallet (USDC)
-                </button>
-                <HspPay target="order" id={orderId} />
+                {!hspActive && (
+                  <button className="btn-gold" onClick={payWithWallet} disabled={tx.state.status === "pending"}>
+                    Pay from wallet (USDC)
+                  </button>
+                )}
+                <HspPay target="order" id={orderId} onActiveChange={setHspActive} />
               </>
             )}
             {status === "Locked" && isSeller && !expired && (
               <div className="grid gap-2">
-                <p className="text-sm text-neutral-300">Ship the slab to the vault and enter the tracking number. Only a hash of it goes on-chain.</p>
+                <VaultAddress />
+                <p className="text-sm text-neutral-300">Then enter the tracking number. Only a hash of it goes on-chain.</p>
                 <input className="input" placeholder="Courier + tracking number" value={tracking} onChange={(e) => setTracking(e.target.value)} />
                 <button className="btn-gold" disabled={!tracking} onClick={() => call("markShipped", [orderId, keccak256(toBytes(tracking.trim()))], "Marking shipped")}>
                   Mark as shipped
@@ -134,6 +139,9 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
               <button className="btn-ghost" onClick={() => call("consentToBuyout", [orderId], "Consenting to buyout")}>
                 Let VaultChain buy the card at the agreed price
               </button>
+            )}
+            {isBuyer && o.fulfillment === 0 && !["Cancelled", "SellerDefault", "Refunded", "Completed"].includes(status) && (
+              <ShippingForm target="order" targetId={orderId} />
             )}
             <TxStatus state={tx.state} />
           </div>

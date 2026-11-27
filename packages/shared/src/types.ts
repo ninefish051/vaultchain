@@ -61,6 +61,8 @@ export interface Listing {
   swapWants?: string; // free text / cardKey description
   images: string[];
   createdAt: string;
+  /** Escrow listings: PSA cert checked against the card type. Vault listings are always verified. */
+  verified?: boolean;
 }
 
 export interface Offer {

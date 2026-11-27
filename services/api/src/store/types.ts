@@ -27,6 +27,8 @@ export interface CardQuery {
   sort?: "price_desc" | "price_asc" | "change_desc" | "change_asc" | "name";
 }
 
+export type ShippingTarget = "order" | "swap" | "redeem";
+
 export interface ListingQuery {
   type?: "vault" | "escrow";
   acceptsSwap?: boolean;
@@ -61,6 +63,8 @@ export interface NewListing {
   acceptsSwap: boolean;
   swapWants?: string;
   images: string[];
+  floorUsd?: number;
+  verified: boolean;
 }
 
 /** Persistence boundary: Postgres in production, in-memory demo data otherwise. */
@@ -77,7 +81,13 @@ export interface Store {
   createListing(l: NewListing): Promise<Listing>;
   cancelListing(id: string): Promise<void>;
 
+  /** Active or reserved listing of this physical slab, if any. */
+  findOpenListingBySlab(slabId: Hex): Promise<(ListingView & { status: "active" | "reserved" }) | undefined>;
+  /** Seller's private auto-accept floor (never returned by public endpoints). */
+  listingFloor(id: string): Promise<number | undefined>;
+
   listOffers(listingId: string): Promise<Offer[]>;
+  listOffersFor(q: { buyer?: Address; seller?: Address }): Promise<(Offer & { listing?: ListingView })[]>;
   createOffer(o: { listingId: string; buyer: Address; priceUsd: number; viaAgent: boolean }): Promise<Offer>;
   updateOffer(id: string, patch: Partial<Pick<Offer, "status" | "counterUsd">>): Promise<Offer | undefined>;
 
@@ -92,6 +102,10 @@ export interface Store {
   listSwaps(address?: Address): Promise<SwapDto[]>;
   getSwap(id: Hex): Promise<SwapDto | undefined>;
   listAssets(owner: Address): Promise<VaultAsset[]>;
+
+  slabInfo(slabId: Hex): Promise<{ cardKey: Hex; grader: string; certNumber: string } | undefined>;
+  saveShipping(s: { target: ShippingTarget; targetId: string; wallet: Address; ciphertext: string }): Promise<void>;
+  shipping(target: ShippingTarget, targetId: string): Promise<{ wallet: Address; ciphertext: string; createdAt: string }[]>;
 
   registerSlab(s: { slabId: Hex; cardKey: Hex; grader: string; certNumber: string; metadata: unknown; metadataHash: Hex }): Promise<void>;
   recordHspPayment(p: { paymentRequestId: string; flowId: string; target: "order" | "swap"; targetId: Hex; payer: Address; amountUsd6: bigint }): Promise<void>;

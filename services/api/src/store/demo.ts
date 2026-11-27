@@ -16,14 +16,16 @@ import type { CardSummary, ListingView, Store, Proposal } from "./types";
  * web app and agent can run without infrastructure. Writes live until the process restarts.
  */
 export function createDemoStore(): Store {
-  const listings = new Map<string, Listing & { status: string }>(DEMO_LISTINGS.map((l) => [l.id, { ...l, status: "active" }]));
+  type Row = Listing & { status: string; floorUsd?: number };
+  const listings = new Map<string, Row>(DEMO_LISTINGS.map((l) => [l.id, { ...l, status: "active", verified: true }]));
+  const shipping = new Map<string, { wallet: Address; ciphertext: string; createdAt: string }[]>();
   const offers = new Map<string, Offer>();
   const proposals = new Map<string, Proposal>();
   const hsp = new Map<string, { status: string }>();
   const cardByKey = new Map(DEMO_CARDS.map((c) => [c.cardKey, c]));
   const eq = (a?: string, b?: string) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
 
-  const view = (l: Listing): ListingView => ({ ...l, card: cardByKey.get(l.cardKey)!, price: demoSnapshot(l.cardKey) });
+  const view = ({ status: _s, floorUsd: _f, ...l }: Row): ListingView => ({ ...l, card: cardByKey.get(l.cardKey)!, price: demoSnapshot(l.cardKey) });
 
   const store: Store = {
     mode: "demo",
@@ -65,9 +67,16 @@ export function createDemoStore(): Store {
       return l ? view(l) : undefined;
     },
     async createListing(n) {
-      const l = { ...n, id: newId("lst"), createdAt: new Date().toISOString(), status: "active" };
+      const l: Row = { ...n, id: newId("lst"), createdAt: new Date().toISOString(), status: "active" };
       listings.set(l.id, l);
-      return l;
+      return view(l);
+    },
+    async findOpenListingBySlab(slabId) {
+      const l = [...listings.values()].find((x) => x.slabId.toLowerCase() === slabId.toLowerCase() && (x.status === "active" || x.status === "reserved"));
+      return l ? { ...view(l), status: l.status as "active" | "reserved" } : undefined;
+    },
+    async listingFloor(id) {
+      return listings.get(id)?.floorUsd;
     },
     async cancelListing(id) {
       const l = listings.get(id);
@@ -76,6 +85,11 @@ export function createDemoStore(): Store {
 
     async listOffers(listingId) {
       return [...offers.values()].filter((o) => o.listingId === listingId);
+    },
+    async listOffersFor(q) {
+      return [...offers.values()]
+        .filter((o) => (!q.buyer || eq(o.buyer, q.buyer)) && (!q.seller || eq(listings.get(o.listingId)?.seller, q.seller)))
+        .map((o) => ({ ...o, listing: listings.get(o.listingId) ? view(listings.get(o.listingId)!) : undefined }));
     },
     async createOffer(o) {
       const offer: Offer = { id: newId("ofr"), listingId: o.listingId, buyer: o.buyer, priceUsd: o.priceUsd, status: "open", createdAt: new Date().toISOString() };
@@ -132,6 +146,18 @@ export function createDemoStore(): Store {
     },
 
     async registerSlab() {},
+    async slabInfo(slabId) {
+      const l = [...listings.values()].find((x) => x.slabId.toLowerCase() === slabId.toLowerCase());
+      return l ? { cardKey: l.cardKey, grader: cardByKey.get(l.cardKey)!.grader, certNumber: l.certNumber } : undefined;
+    },
+    async saveShipping(s) {
+      const k = s.target + ":" + s.targetId.toLowerCase();
+      const rows = (shipping.get(k) ?? []).filter((r) => !eq(r.wallet, s.wallet));
+      shipping.set(k, [...rows, { wallet: s.wallet, ciphertext: s.ciphertext, createdAt: new Date().toISOString() }]);
+    },
+    async shipping(target, targetId) {
+      return shipping.get(target + ":" + targetId.toLowerCase()) ?? [];
+    },
     async recordHspPayment(p) {
       hsp.set(p.paymentRequestId, { status: "created" });
     },

@@ -28,6 +28,7 @@ function Sell() {
   const [price, setPrice] = useState(0);
   const [acceptsSwap, setAcceptsSwap] = useState(true);
   const [swapWants, setSwapWants] = useState("");
+  const [floor, setFloor] = useState(0);
   const [imageUrl, setImageUrl] = useState("");
   const [msg, setMsg] = useState<{ tone: "ok" | "err"; text: string }>();
 
@@ -60,7 +61,7 @@ function Sell() {
         });
         if (hash) {
           await api.createListing(
-            { type: "vault", grader: asset.grader, certNumber: asset.certNumber, cardKey: asset.cardKey, priceUsd: price, acceptsSwap, swapWants: swapWants || undefined, images: card ? [card.imageUrl] : [] },
+            { type: "vault", grader: asset.grader, certNumber: asset.certNumber, cardKey: asset.cardKey, priceUsd: price, acceptsSwap, swapWants: swapWants || undefined, images: card ? [card.imageUrl] : [], floorUsd: floor || undefined },
             address,
             signMessageAsync,
           ).catch(() => undefined); // the indexer also picks up the Listed event
@@ -78,6 +79,7 @@ function Sell() {
             acceptsSwap,
             swapWants: swapWants || undefined,
             images: imageUrl ? [imageUrl] : card ? [card.imageUrl] : [],
+            floorUsd: floor || undefined,
           },
           address,
           signMessageAsync,
@@ -177,6 +179,11 @@ function Sell() {
                 {price > 0 && Math.abs(price / fair - 1) > 0.4 && <span className="text-gold"> · far from fair value</span>}
               </p>
             )}
+          </div>
+          <div>
+            <label className="label">Auto-accept floor (private, optional)</label>
+            <input className="input" type="number" inputMode="decimal" min={0} value={floor || ""} onChange={(e) => setFloor(Number(e.target.value))} placeholder="e.g. 95% of your price" />
+            <p className="mt-1 text-xs text-neutral-500">Your seller agent accepts offers at or above this and counters below it. Never shown to buyers.</p>
           </div>
           <div>
             <label className="label">Swaps</label>

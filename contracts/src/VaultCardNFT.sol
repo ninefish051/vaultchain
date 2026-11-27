@@ -15,6 +15,7 @@ contract VaultCardNFT is ERC721, AccessControl {
 
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE"); // VaultEscrow + vault intake
     bytes32 public constant VAULT_ROLE = keccak256("VAULT_ROLE"); // vault operator
+    bytes32 public constant ESCROW_ROLE = keccak256("ESCROW_ROLE"); // VaultEscrow + SwapEscrow
 
     enum Custody {
         None, // not minted / burned
@@ -30,6 +31,10 @@ contract VaultCardNFT is ERC721, AccessControl {
     }
 
     mapping(uint256 tokenId => Slab) private _slabs;
+    /// @notice Escrow contract currently trading this physical (not yet minted) slab. One slab can be
+    ///         in at most one active order or swap across all escrows, and cannot be minted by
+    ///         anyone else meanwhile.
+    mapping(uint256 tokenId => address) public slabLockedBy;
     string private _baseTokenURI;
 
     event SlabMinted(uint256 indexed tokenId, address indexed to, bytes32 indexed cardKey, bytes32 metadataHash);
@@ -39,6 +44,9 @@ contract VaultCardNFT is ERC721, AccessControl {
     error NotTokenOwner();
     error WrongCustody(Custody current);
     error TokenLocked(uint256 tokenId, Custody custody);
+    error SlabBusy(uint256 tokenId, address lockedBy);
+    error SlabAlreadyMinted(uint256 tokenId);
+    error NotLocker();
 
     constructor(address admin, string memory baseURI) ERC721("VaultChain Card", "VCARD") {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
@@ -53,9 +61,35 @@ contract VaultCardNFT is ERC721, AccessControl {
         returns (uint256 tokenId)
     {
         tokenId = uint256(slabId);
+        address locker = slabLockedBy[tokenId];
+        if (locker != address(0) && locker != msg.sender) revert SlabBusy(tokenId, locker);
         _slabs[tokenId] = Slab({cardKey: cardKey, metadataHash: metadataHash, custody: Custody.InVault});
         _safeMint(to, tokenId); // reverts if the slab is already minted
         emit SlabMinted(tokenId, to, cardKey, metadataHash);
+    }
+
+    // ------------------------------------------------------------------ escrow slab locks
+
+    event SlabLocked(uint256 indexed tokenId, address indexed escrow);
+    event SlabUnlocked(uint256 indexed tokenId, address indexed escrow);
+
+    /// @notice Reserve a physical slab for one escrow trade. Reverts if it is already in another
+    ///         trade or already exists as a vault NFT (vaulted cards trade as NFTs instead).
+    function lockSlab(bytes32 slabId) external onlyRole(ESCROW_ROLE) {
+        uint256 tokenId = uint256(slabId);
+        address locker = slabLockedBy[tokenId];
+        if (locker != address(0)) revert SlabBusy(tokenId, locker);
+        if (_ownerOf(tokenId) != address(0)) revert SlabAlreadyMinted(tokenId);
+        slabLockedBy[tokenId] = msg.sender;
+        emit SlabLocked(tokenId, msg.sender);
+    }
+
+    /// @notice Release the reservation when the trade ends. Only the escrow that locked it.
+    function unlockSlab(bytes32 slabId) external {
+        uint256 tokenId = uint256(slabId);
+        if (slabLockedBy[tokenId] != msg.sender) revert NotLocker();
+        delete slabLockedBy[tokenId];
+        emit SlabUnlocked(tokenId, msg.sender);
     }
 
     // ------------------------------------------------------------------ redemption
@@ -94,6 +128,10 @@ contract VaultCardNFT is ERC721, AccessControl {
 
     function slabOf(uint256 tokenId) external view returns (Slab memory) {
         return _slabs[tokenId];
+    }
+
+    function exists(uint256 tokenId) external view returns (bool) {
+        return _ownerOf(tokenId) != address(0);
     }
 
     function custodyOf(uint256 tokenId) external view returns (Custody) {

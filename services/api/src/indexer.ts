@@ -20,6 +20,28 @@ import { getState, setState, type Db } from "@vaultchain/db";
 const POLL_MS = Number(process.env.INDEXER_POLL_MS ?? 15_000);
 const CONFIRMATIONS = BigInt(process.env.INDEXER_CONFIRMATIONS ?? 2);
 
+/** Listing status follows the on-chain trade: reserved while active, sold or back on sale when it ends. */
+const SOLD_ORDER = new Set(["Completed", "AwaitingDelivery", "BoughtOut"]);
+const FREED_ORDER = new Set(["Cancelled", "SellerDefault", "Refunded", "Returned"]);
+const SOLD_SWAP = new Set(["Completed", "AwaitingDelivery"]);
+const FREED_SWAP = new Set(["Cancelled", "Defaulted", "Refunded"]);
+
+async function reserveListings(db: Db, slabs: string[], tradeId: string) {
+  await db.query(
+    "UPDATE listings SET status = 'reserved', reserved_by = $2 WHERE slab_id = ANY($1) AND status = 'active'",
+    [slabs.map((x) => x.toLowerCase()), tradeId],
+  );
+}
+
+async function settleListings(db: Db, tradeId: string, outcome: "sold" | "freed") {
+  await db.query(
+    outcome === "sold"
+      ? "UPDATE listings SET status = 'sold' WHERE reserved_by = $1 AND status = 'reserved'"
+      : "UPDATE listings SET status = 'active', reserved_by = NULL WHERE reserved_by = $1 AND status = 'reserved'",
+    [tradeId],
+  );
+}
+
 export function startIndexer(db: Db, log: (msg: string) => void) {
   const { chainId, publicClient, deployment } = chainContext();
   const contracts: { name: string; address: Address; abi: Abi }[] = [
@@ -80,10 +102,13 @@ export function startIndexer(db: Db, log: (msg: string) => void) {
            VALUES ($1,$2,$3,$4,$5,$6,$7,'Signed',$8) ON CONFLICT (order_id) DO NOTHING`,
           [id, lower(o.buyer), lower(o.seller), o.cardKey, o.slabId, fromUsd6(o.priceUsd), fromUsd6(o.depositUsd), o.fulfillment === 1 ? "KeepInVault" : "ShipToBuyer"],
         );
+        await reserveListings(db, [o.slabId], id);
       } else if (event === "StatusChanged") {
         const status = ORDER_STATUS[Number(a.status)]!;
         a = { ...a, statusName: status };
         await db.query("UPDATE orders SET status = $2, deadline = $3, updated_at = now() WHERE order_id = $1", [id, status, deadline(a.deadline)]);
+        if (SOLD_ORDER.has(status)) await settleListings(db, id, "sold");
+        else if (FREED_ORDER.has(status)) await settleListings(db, id, "freed");
       }
       return record(contract, event, id ?? null, a, l);
     }
@@ -98,12 +123,15 @@ export function startIndexer(db: Db, log: (msg: string) => void) {
           [id, lower(s.legs[0].owner), lower(s.legs[1].owner), s.legs[0].slabId, s.legs[1].slabId, s.legs[0].cardKey, s.legs[1].cardKey,
             fromUsd6(s.depositUsd), fromUsd6(s.topUpUsd), s.topUpFrom],
         );
+        await reserveListings(db, [s.legs[0].slabId, s.legs[1].slabId], id);
       } else if (event === "StatusChanged") {
         const status = SWAP_STATUS[Number(a.status)]!;
         a = { ...a, statusName: status };
         const s = await publicClient.readContract({ address: deployment.swapEscrow, abi: swapEscrowAbi, functionName: "getSwap", args: [id] });
         const legs = s.legState.map((x) => ["Pending", "Shipped", "Passed"][x]);
         await db.query("UPDATE swaps SET status = $2, deadline = $3, leg_state = $4, updated_at = now() WHERE swap_id = $1", [id, status, deadline(a.deadline), JSON.stringify(legs)]);
+        if (SOLD_SWAP.has(status)) await settleListings(db, id, "sold");
+        else if (FREED_SWAP.has(status)) await settleListings(db, id, "freed");
       } else if (event === "LegShipped" || event === "LegInspected") {
         const s = await publicClient.readContract({ address: deployment.swapEscrow, abi: swapEscrowAbi, functionName: "getSwap", args: [id] });
         await db.query("UPDATE swaps SET leg_state = $2, updated_at = now() WHERE swap_id = $1", [id, JSON.stringify(s.legState.map((x) => ["Pending", "Shipped", "Passed"][x]))]);

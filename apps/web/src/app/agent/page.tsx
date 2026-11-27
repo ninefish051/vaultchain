@@ -57,6 +57,11 @@ export default function AgentPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [maxPerOrder, setMaxPerOrder] = useState<number | "">("");
+  const [budget, setBudget] = useState<number | "">("");
+  // what the agent has already drafted for the user this session (orders at price, swap top-ups we pay)
+  const spentUsd = messages
+    .flatMap((m) => m.actions ?? [])
+    .reduce((sum, a) => sum + (a.type === "order" ? Number(a.priceUsd) : a.type === "swap" && a.topUpFrom === 1 ? Number(a.topUpUsd) : 0), 0);
   const end = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -74,7 +79,7 @@ export default function AgentPage() {
       const r = await agentChat({
         messages: next.map(({ role, content }) => ({ role, content })),
         userAddress: address,
-        limits: maxPerOrder ? { maxPerOrderUsd: maxPerOrder } : undefined,
+        limits: { maxPerOrderUsd: maxPerOrder || undefined, totalBudgetUsd: budget || undefined, spentUsd },
       });
       setMessages([...next, { role: "assistant", content: r.reply, actions: r.actions }]);
     } catch (e) {
@@ -93,7 +98,10 @@ export default function AgentPage() {
       <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
         <ShieldCheck className="h-4 w-4 text-gold" />
         <span className="text-neutral-400">Spending limit per order (USD)</span>
-        <input className="input w-36" type="number" min={0} placeholder="no limit" value={maxPerOrder} onChange={(e) => setMaxPerOrder(e.target.value ? Number(e.target.value) : "")} />
+        <input className="input w-32" type="number" inputMode="decimal" min={0} placeholder="no limit" value={maxPerOrder} onChange={(e) => setMaxPerOrder(e.target.value ? Number(e.target.value) : "")} />
+        <span className="text-neutral-400">Session budget</span>
+        <input className="input w-32" type="number" inputMode="decimal" min={0} placeholder="no limit" value={budget} onChange={(e) => setBudget(e.target.value ? Number(e.target.value) : "")} />
+        {spentUsd > 0 && <span className="text-xs text-neutral-500">drafted so far ${spentUsd.toLocaleString()}</span>}
       </div>
 
       <div className="panel mt-4 flex min-h-[420px] flex-col p-4">

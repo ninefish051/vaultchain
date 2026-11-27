@@ -29,6 +29,16 @@ export const api = {
     get<{ card: CardType; price?: PriceSnapshot; history: PricePointSeries[]; sales: SaleRecord[]; listings: ListingView[] }>(`/cards/${cardKey}`),
   listings: (qs: string) => get<ListingView[]>(`/listings?${qs}`),
   listing: (id: string) => get<ListingView>(`/listings/${encodeURIComponent(id)}`),
+  /** Seller's private floor (service-to-service, needs INTERNAL_TOKEN). Undefined if not set. */
+  sellerFloor: async (id: string): Promise<number | undefined> => {
+    if (!process.env.INTERNAL_TOKEN) return undefined;
+    const r = await fetch(`${API}/internal/listings/${encodeURIComponent(id)}/floor`, {
+      headers: { "x-internal-token": process.env.INTERNAL_TOKEN },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!r.ok) return undefined;
+    return ((await r.json()) as { floorUsd: number | null }).floorUsd ?? undefined;
+  },
   quoteOrder: (cardKey: string, priceUsd: number) =>
     post<{ fairValueUsd: number; volatilityBps: number; depositBps: number; depositUsd: number; deviationPct: number; warnings: string[] }>(
       "/quote/order",

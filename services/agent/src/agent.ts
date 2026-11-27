@@ -20,7 +20,10 @@ export const MODEL = process.env.AGENT_MODEL ?? "claude-opus-5-5";
 
 export interface Limits {
   maxPerOrderUsd?: number;
+  /** Budget for the whole session. */
   totalBudgetUsd?: number;
+  /** Already committed earlier in this session (sum of drafts the user saw), sent by the client. */
+  spentUsd?: number;
   allowedGraders?: string[];
 }
 
@@ -49,9 +52,13 @@ export async function runBuyerAgent(input: {
   const actions: AgentAction[] = [];
   const limits = input.limits ?? {};
 
+  // Spending already drafted this session (client-reported) plus what this turn drafts.
+  let committed = limits.spentUsd ?? 0;
   const withinLimits = (usd: number) => {
     if (limits.maxPerOrderUsd !== undefined && usd > limits.maxPerOrderUsd) return `exceeds the per-order limit of $${limits.maxPerOrderUsd}`;
-    if (limits.totalBudgetUsd !== undefined && usd > limits.totalBudgetUsd) return `exceeds the total budget of $${limits.totalBudgetUsd}`;
+    if (limits.totalBudgetUsd !== undefined && committed + usd > limits.totalBudgetUsd) {
+      return `would bring session spending to $${(committed + usd).toFixed(2)}, above the budget of $${limits.totalBudgetUsd}`;
+    }
     return undefined;
   };
 
@@ -118,8 +125,8 @@ export async function runBuyerAgent(input: {
       description: "Send an offer to the seller's agent for a listing. Returns accept, counter (with price) or reject.",
       inputSchema: z.object({ listingId: z.string(), offerUsd: z.number().positive() }),
       run: async ({ listingId, offerUsd }) => {
-        const l = await api.listing(listingId);
-        return JSON.stringify(respondToOffer({ askUsd: l.priceUsd, fairValueUsd: l.price?.fairValueUsd }, offerUsd));
+        const [l, floor] = await Promise.all([api.listing(listingId), api.sellerFloor(listingId)]);
+        return JSON.stringify(respondToOffer({ askUsd: l.priceUsd, fairValueUsd: l.price?.fairValueUsd, sellerFloorUsd: floor }, offerUsd));
       },
     }),
     betaZodTool({
@@ -137,6 +144,7 @@ export async function runBuyerAgent(input: {
         const l = await api.listing(listingId);
         if (limits.allowedGraders?.length && !limits.allowedGraders.includes(l.card.grader)) return `Not drafted: ${l.card.grader} is outside the user's allowed graders.`;
         const q = await api.quoteOrder(l.cardKey, priceUsd);
+        committed += priceUsd;
         actions.push({ type: "order", listingId, cardKey: l.cardKey, priceUsd, depositUsd: q.depositUsd, fulfillment: keepInVault ? "KeepInVault" : "ShipToBuyer", warnings: q.warnings });
         return JSON.stringify({ drafted: true, depositUsd: q.depositUsd, depositPct: q.depositBps / 100, deviationFromFairPct: q.deviationPct, warnings: q.warnings });
       },
@@ -169,6 +177,7 @@ export async function runBuyerAgent(input: {
           const over = withinLimits(topUp + q.depositUsd);
           if (over) return `Not drafted: top-up plus deposit ${over}.`;
         }
+        if (q.topUpFrom === 1) committed += topUp;
         actions.push({ type: "swap", myListingId, theirListingId, topUpUsd: topUp, topUpFrom: topUp === 0 ? 0 : q.topUpFrom, depositUsd: q.depositUsd });
         return JSON.stringify({ drafted: true, topUpUsd: topUp, whoPays: q.topUpFrom === 1 ? "you" : "them", depositUsd: q.depositUsd });
       },

@@ -94,6 +94,8 @@ abstract contract Base is Test {
         escrow.grantRole(escrow.RELAYER_ROLE(), relayer);
         escrow.grantRole(escrow.TREASURY_ROLE(), treasury);
         nft.grantRole(nft.MINTER_ROLE(), address(swapEscrow));
+        nft.grantRole(nft.ESCROW_ROLE(), address(escrow));
+        nft.grantRole(nft.ESCROW_ROLE(), address(swapEscrow));
         swapEscrow.grantRole(swapEscrow.VAULT_ROLE(), vault);
         swapEscrow.grantRole(swapEscrow.ARBITER_ROLE(), arbiter);
         swapEscrow.grantRole(swapEscrow.RELAYER_ROLE(), relayer);

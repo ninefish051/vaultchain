@@ -7,7 +7,7 @@ Hackathon / v1 topology: one EC2 host running Docker Compose behind an Elastic I
 | EC2 `t3.medium` (Amazon Linux 2023) | all services via `infra/docker-compose.yml` | instance role: read `vaultchain/*` secret, write CloudWatch Logs |
 | Elastic IP | stable egress IP for HSP allow-list + DNS | report it to HSP before integration |
 | RDS PostgreSQL 16 (`db.t4g.micro`) | `DATABASE_URL` | private subnet, SG allows 5432 from the EC2 SG only |
-| Secrets Manager `vaultchain/prod` | JSON: `ORACLE_SIGNER_KEY`, `RELAYER_KEY`, `ANTHROPIC_API_KEY`, `EBAY_*`, `PRICECHARTING_TOKEN`, `PSA_API_TOKEN` | loaded by `load-secrets.sh` |
+| Secrets Manager `vaultchain/prod` | JSON: `ORACLE_SIGNER_KEY`, `RELAYER_KEY`, `ANTHROPIC_API_KEY`, `EBAY_*`, `PRICECHARTING_TOKEN`, `PSA_API_TOKEN`, `SHIPPING_ENC_KEY`, `INTERNAL_TOKEN` | loaded by `load-secrets.sh` |
 | S3 `vaultchain-evidence` | price evidence snapshots, inspection photos | optional for the demo |
 | CloudWatch Logs `/vaultchain/prod` | container logs (awslogs driver) | |
 | Route 53 | `DOMAIN`, `api.DOMAIN`, `agent.DOMAIN` → Elastic IP | Caddy issues TLS certificates |

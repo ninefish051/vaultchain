@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeftRight, ShieldCheck, Vault } from "lucide-react";
 import { useAccount, usePublicClient, useSignMessage, useSignTypedData } from "wagmi";
@@ -18,6 +18,7 @@ import { Badge, Empty, KV, Spinner, TxStatus } from "@/components/ui";
 export default function ListingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const agreed = Number(useSearchParams().get("price")) || undefined; // from an accepted / countered offer
   const { data: l, isLoading } = useQuery({ queryKey: ["listing", id], queryFn: () => api.listing(decodeURIComponent(id)) });
   const { address, isConnected } = useAccount();
   const { chainId, deployment } = useDeployment();
@@ -32,8 +33,8 @@ export default function ListingPage({ params }: { params: Promise<{ id: string }
   const [msg, setMsg] = useState<{ tone: "ok" | "err"; text: string }>();
 
   useEffect(() => {
-    if (l) setPrice(l.priceUsd);
-  }, [l]);
+    if (l) setPrice(agreed ?? l.priceUsd);
+  }, [l, agreed]);
   useEffect(() => {
     if (!l || l.type !== "escrow" || !price) return;
     const t = setTimeout(() => api.quoteOrder(l.cardKey, price).then(setQuote).catch(() => setQuote(undefined)), 250);

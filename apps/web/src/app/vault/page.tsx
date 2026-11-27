@@ -27,6 +27,20 @@ export default function VaultAdmin() {
   const [report, setReport] = useState("");
   const [award, setAward] = useState(0);
   const [msg, setMsg] = useState<string>();
+  const [addresses, setAddresses] = useState<Record<string, string>>({});
+
+  async function showAddress(target: "order" | "swap" | "redeem", id: string) {
+    if (!address) return;
+    try {
+      const rows = await api.vaultShipments(target, id, address, signMessageAsync);
+      const text = rows.length
+        ? rows.map((r) => [r.address.name, r.address.phone, r.address.line1, r.address.line2, `${r.address.city} ${r.address.region ?? ""} ${r.address.postalCode}`, r.address.country].filter(Boolean).join(", ")).join(" | ")
+        : "No address submitted yet";
+      setAddresses((m) => ({ ...m, [id]: text }));
+    } catch (e) {
+      setAddresses((m) => ({ ...m, [id]: errorMessage(e) }));
+    }
+  }
 
   if (!deployment) return <div className="container-page pt-10"><Empty title="Connect the vault operator wallet on a network where VaultChain is deployed" /></div>;
   const d = deployment;
@@ -135,8 +149,10 @@ export default function VaultAdmin() {
               const isOrder = "orderId" in x;
               const id = isOrder ? x.orderId : x.swapId;
               return (
-                <div key={id} className="mt-3 flex items-center justify-between border-t border-ink-700 pt-3 text-sm">
+                <div key={id} className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-ink-700 pt-3 text-sm">
                   <span className="font-mono">{isOrder ? "order" : "swap"} {short(id, 8)}</span>
+                  <button className="btn-ghost py-1.5" onClick={() => showAddress(isOrder ? "order" : "swap", id)}>View address</button>
+                  {addresses[id] && <div className="basis-full text-xs text-neutral-300">{addresses[id]}</div>}
                   <button
                     className="btn-ghost py-1.5"
                     onClick={() => tx.run((w) => w({ address: isOrder ? d.escrow : d.swapEscrow, abi: (isOrder ? vaultEscrowAbi : swapEscrowAbi) as Abi, functionName: "confirmDelivered", args: [id], label: "Confirming delivery" }))}

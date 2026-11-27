@@ -217,6 +217,9 @@ contract SwapEscrow is AccessControl, ReentrancyGuard, EIP712 {
 
         _checkVaulted(t.a, 0);
         _checkVaulted(t.b, 1);
+        // physical legs: one active trade per slab across all escrows (vaulted legs move as NFTs)
+        if (t.a.kind == uint8(Kind.Physical)) nft.lockSlab(t.a.slabId);
+        if (t.b.kind == uint8(Kind.Physical)) nft.lockSlab(t.b.slabId);
 
         CardPriceOracle.PricePoint memory pa = oracle.getFreshPrice(t.a.cardKey, config.maxPriceAge);
         CardPriceOracle.PricePoint memory pb = oracle.getFreshPrice(t.b.cardKey, config.maxPriceAge);
@@ -597,6 +600,11 @@ contract SwapEscrow is AccessControl, ReentrancyGuard, EIP712 {
         s.status = next;
         s.deadline = window == 0 ? 0 : uint64(block.timestamp + window);
         emit StatusChanged(swapId, next, s.deadline);
+        if (next == Status.Completed || next == Status.Defaulted || next == Status.Cancelled || next == Status.Refunded) {
+            for (uint8 side = 0; side < 2; side++) {
+                if (s.legs[side].kind == uint8(Kind.Physical)) nft.unlockSlab(s.legs[side].slabId);
+            }
+        }
     }
 
     function _requireStatus(bytes32 swapId, Status st) private view returns (Swap storage s) {

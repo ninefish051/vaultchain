@@ -1,5 +1,6 @@
-import { keccak256, toBytes, type Address, type Hex } from "viem";
+import type { Address, Hex } from "viem";
 import {
+  slabMetadataHash,
   DEFAULT_WINDOWS,
   escrowDomain,
   orderTermsTypes,
@@ -19,8 +20,7 @@ const randomNonce = () => {
 };
 const deadline = (hours: number) => BigInt(Math.floor(Date.now() / 1000) + hours * 3600);
 
-export const metadataHashOf = (o: { cardKey: Hex; certNumber: string }) =>
-  keccak256(toBytes(JSON.stringify({ cardKey: o.cardKey, certNumber: o.certNumber })));
+export const metadataHashOf = (o: { cardKey: Hex; certNumber: string }) => slabMetadataHash(o.cardKey, o.certNumber);
 
 export function buildOrderTerms(o: {
   buyer: Address;

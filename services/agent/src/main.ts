@@ -18,6 +18,7 @@ const chatBody = z.object({
     .object({
       maxPerOrderUsd: z.number().positive().optional(),
       totalBudgetUsd: z.number().positive().optional(),
+      spentUsd: z.number().min(0).optional(),
       allowedGraders: z.array(z.string()).optional(),
     })
     .optional(),

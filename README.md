@@ -80,7 +80,7 @@ ANTHROPIC_API_KEY=… pnpm --filter @vaultchain/agent start
 ## Tests
 
 ```bash
-cd contracts && forge test          # 77 tests incl. fuzzing of fund conservation and deposit rounding
+cd contracts && forge test          # 84 tests incl. fuzzing of fund conservation, deposit rounding and slab locks
 pnpm typecheck && pnpm test         # TypeScript packages (pricing, matching, API, seller agent)
 pnpm build                          # Next.js production build
 ```
@@ -96,7 +96,10 @@ See [`.env.example`](.env.example) for contracts and [`infra/.env.example`](infr
 | `ORACLE_SIGNER_KEY` | oracle-publisher | holds `ORACLE_SIGNER_ROLE` |
 | `RELAYER_KEY` | keeper, publisher | holds `RELAYER_ROLE` on both escrows |
 | `EBAY_CLIENT_ID/SECRET`, `PRICECHARTING_TOKEN`, `ENABLE_SCRAPERS` | price-indexer | scrapers are off by default |
-| `PSA_API_TOKEN` | api | certificate verification |
+| `PSA_API_TOKEN` | api | certificate verification; escrow listings are marked unverified without it |
+| `SHIPPING_ENC_KEY` | api | 32-byte key, encrypts shipping addresses (AES-256-GCM) |
+| `VAULT_SHIPPING_ADDRESS` | api | shown to sellers shipping slabs in for inspection |
+| `INTERNAL_TOKEN` | api, agent | lets the seller agent read a listing's private auto-accept floor |
 | `HSP_MCP_URL`, `HSP_MERCHANT_NAME` | api, keeper | the server IP must be allow-listed by HSP |
 | `ANTHROPIC_API_KEY`, `AGENT_MODEL` | agent | default `claude-opus-5-5` |
 | `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_AGENT_URL`, `NEXT_PUBLIC_CHAIN_ID`, `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | web | build-time |

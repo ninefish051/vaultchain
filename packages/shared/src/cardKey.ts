@@ -53,6 +53,11 @@ export function slabIdOf(grader: Grader, certNumber: string): Hex {
   return keccak256(toBytes(`${grader}|${cert}`));
 }
 
+/** Metadata hash minted into VaultCardNFT for a slab. Same formula everywhere (orders, swaps, intake). */
+export function slabMetadataHash(cardKey: Hex, certNumber: string): Hex {
+  return keccak256(toBytes(JSON.stringify({ cardKey: cardKey.toLowerCase(), certNumber: certNumber.replace(/\D/g, "") })));
+}
+
 export function tokenIdOf(slabId: Hex): bigint {
   return BigInt(slabId);
 }

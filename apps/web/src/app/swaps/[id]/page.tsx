@@ -7,6 +7,7 @@ import { SWAP_STATUS, fromUsd6, swapEscrowAbi, vaultCardNFTAbi } from "@vaultcha
 import { ensureAllowance, useDeployment, useTx } from "@/lib/contracts";
 import { short, timeLeft, usd } from "@/lib/format";
 import { HspPay } from "@/components/HspPay";
+import { ShippingForm, VaultAddress } from "@/components/ShippingForm";
 import { Timeline } from "@/components/Timeline";
 import { Credits } from "@/components/Credits";
 import { Badge, Empty, KV, PageHeader, Spinner, TxStatus } from "@/components/ui";
@@ -29,6 +30,7 @@ export default function SwapPage({ params }: { params: Promise<{ id: string }> }
   const publicClient = usePublicClient();
   const tx = useTx();
   const [tracking, setTracking] = useState("");
+  const [hspActive, setHspActive] = useState(false);
 
   const { data: s, refetch, isLoading } = useReadContract({
     address: deployment?.swapEscrow,
@@ -113,15 +115,18 @@ export default function SwapPage({ params }: { params: Promise<{ id: string }> }
                   Lock <b className="text-white">{usd(fromUsd6(due), true)}</b> (deposit{s.topUpFrom === mySide + 1 ? " + top-up" : ""})
                   {mySide >= 0 && s.legs[mySide as 0 | 1]!.kind === 1 && " and move your NFT into escrow"}.
                 </p>
-                <button className="btn-gold" onClick={fund} disabled={tx.state.status === "pending"}>
-                  Lock from wallet
-                </button>
-                <HspPay target="swap" id={swapId} />
+                {!hspActive && (
+                  <button className="btn-gold" onClick={fund} disabled={tx.state.status === "pending"}>
+                    Lock from wallet
+                  </button>
+                )}
+                <HspPay target="swap" id={swapId} onActiveChange={setHspActive} />
               </>
             )}
             {status === "Locked" && mySide >= 0 && s.legState[mySide as 0 | 1] === 0 && !expired && (
               <div className="grid gap-2">
-                <p className="text-sm text-neutral-300">Ship your slab to the vault, then enter the tracking number.</p>
+                <VaultAddress />
+                <p className="text-sm text-neutral-300">Then enter the tracking number.</p>
                 <input className="input" placeholder="Courier + tracking number" value={tracking} onChange={(e) => setTracking(e.target.value)} />
                 <button className="btn-gold" disabled={!tracking} onClick={() => call("markShipped", [swapId, keccak256(toBytes(tracking.trim()))], "Marking shipped")}>
                   Mark as shipped
@@ -129,6 +134,9 @@ export default function SwapPage({ params }: { params: Promise<{ id: string }> }
               </div>
             )}
             {status === "Completed" && <p className="text-sm text-up">Swap complete. Check Assets for your new card.</p>}
+            {mySide >= 0 && s.legs[(1 - mySide) as 0 | 1].delivery === 0 && !["Cancelled", "Defaulted", "Refunded", "Completed"].includes(status) && (
+              <ShippingForm target="swap" targetId={swapId} title="Where should the vault ship the card you receive?" />
+            )}
             {expired && status === "Signed" && <button className="btn-danger" onClick={() => call("cancelUnfunded", [swapId], "Cancelling")}>Cancel and refund</button>}
             {expired && status === "Locked" && <button className="btn-danger" onClick={() => call("claimShipDefault", [swapId], "Settling")}>Settle: a side did not ship</button>}
             {expired && status === "Inspecting" && <button className="btn-danger" onClick={() => call("escalateInspectionTimeout", [swapId], "Escalating")}>Escalate: inspection timed out</button>}

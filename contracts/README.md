@@ -45,6 +45,7 @@ Swap default compensation = `max(5% of the higher card, (fair_defaulter − ref_
 |---|---|---|
 | `ORACLE_SIGNER_ROLE` | Oracle | price service signing key |
 | `MINTER_ROLE` | NFT | VaultEscrow, SwapEscrow, vault intake |
+| `ESCROW_ROLE` | NFT | VaultEscrow, SwapEscrow (slab locks) |
 | `VAULT_ROLE` | NFT, Escrow, SwapEscrow | vault operator |
 | `RELAYER_ROLE` | Escrow, SwapEscrow | keeper that confirms HSP payments |
 | `ARBITER_ROLE` | Escrow, SwapEscrow | dispute multisig |
@@ -56,12 +57,14 @@ Swap default compensation = `max(5% of the higher card, (fair_defaulter − ref_
 ```bash
 git submodule update --init --depth 1   # forge-std + OpenZeppelin v5.4.0
 forge build
-forge test -vv        # 77 tests
+forge test -vv        # 84 tests
 # deploy (USDC_ADDRESS empty => deploys MockUSDC for testnets)
 cp ../.env.example ../.env   # fill PRIVATE_KEY etc.
 source ../.env && forge script script/Deploy.s.sol --rpc-url hsk_testnet --broadcast
 ```
 
 Addresses are written to `deployments/<chainId>.json`; run `pnpm --filter @vaultchain/shared sync:deployments` (and `pnpm abis` after contract changes) so the services and web app pick them up.
+
+A physical slab can be in only one active order or swap at a time: both escrows reserve it through `VaultCardNFT.lockSlab` (ESCROW_ROLE) and release it when the trade ends. A slab that already exists as a vault NFT cannot go through escrow; it trades as an NFT (VaultMarket / VaultSwap / vaulted swap legs).
 
 Deposits are rounded up to a whole cent (USDC has 6 decimals) so USD-denominated rails such as HSP carts can pay them exactly.

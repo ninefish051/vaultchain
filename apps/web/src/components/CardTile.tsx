@@ -55,6 +55,7 @@ export function ListingTile({ l }: { l: ListingView }) {
             <ArrowLeftRight className="h-3 w-3" /> Swap
           </Badge>
         )}
+        {l.type === "escrow" && l.verified === false && <Badge tone="down">Cert unverified</Badge>}
       </div>
       <div className="mt-2 line-clamp-2 text-sm font-medium leading-snug group-hover:text-gold">{cardTitle(l.card)}</div>
       <div className="mt-auto flex flex-wrap items-baseline justify-between gap-x-2 pt-3">

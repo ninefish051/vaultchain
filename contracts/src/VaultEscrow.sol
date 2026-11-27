@@ -211,6 +211,7 @@ contract VaultEscrow is AccessControl, ReentrancyGuard, EIP712 {
         if (!SignatureChecker.isValidSignatureNow(t.seller, orderId, sellerSig)) revert BadSignature(t.seller);
         _useNonce(t.buyer, t.nonce);
         _useNonce(t.seller, t.nonce);
+        nft.lockSlab(t.slabId); // one active trade per physical slab; vaulted slabs trade as NFTs
 
         CardPriceOracle.PricePoint memory p = oracle.getFreshPrice(t.cardKey, config.maxPriceAge);
         _checkPriceBounds(t.priceUsd, p.fairValueUsd);
@@ -529,6 +530,11 @@ contract VaultEscrow is AccessControl, ReentrancyGuard, EIP712 {
         o.status = next;
         o.deadline = window == 0 ? 0 : uint64(block.timestamp + window);
         emit StatusChanged(orderId, next, o.deadline);
+        // The slab is free to trade again once the order is over (and the card handed over or returned).
+        if (
+            next == Status.Completed || next == Status.SellerDefault || next == Status.Cancelled
+                || next == Status.Refunded || next == Status.Returned || next == Status.BoughtOut
+        ) nft.unlockSlab(o.slabId);
     }
 
     function _requireStatus(bytes32 orderId, Status s) private view returns (Order storage o) {

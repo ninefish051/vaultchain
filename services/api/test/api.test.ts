@@ -61,4 +61,44 @@ describe("api (demo store)", () => {
     const r = await app.inject("/cards/0x1234");
     expect(r.statusCode).toBe(400);
   });
+
+  it("allows one open listing per slab and validates the floor", async () => {
+    // demo-0 is cert 70000000 of DEMO_CARDS[0], listed by a demo seller
+    const taken = { type: "escrow", grader: "PSA", certNumber: "70000000", cardKey: DEMO_CARDS[0]!.cardKey, priceUsd: 9000 };
+    expect((await signed("POST", "/listings", taken)).statusCode).toBe(409);
+    const badFloor = { type: "escrow", grader: "PSA", certNumber: "55500001", cardKey: DEMO_CARDS[0]!.cardKey, priceUsd: 9000, floorUsd: 9500 };
+    expect((await signed("POST", "/listings", badFloor)).statusCode).toBe(400);
+    const wrongGrader = { type: "escrow", grader: "BGS", certNumber: "55500002", cardKey: DEMO_CARDS[0]!.cardKey, priceUsd: 9000 };
+    expect((await signed("POST", "/listings", wrongGrader)).statusCode).toBe(400);
+  });
+
+  it("keeps the seller floor private", async () => {
+    const body = { type: "escrow", grader: "PSA", certNumber: "55500003", cardKey: DEMO_CARDS[0]!.cardKey, priceUsd: 9000, floorUsd: 8500 };
+    const created = (await signed("POST", "/listings", body)).json();
+    expect(created.floorUsd).toBeUndefined();
+    const pub = (await app.inject(`/listings/${created.id}`)).json();
+    expect(pub.floorUsd).toBeUndefined();
+    expect((await app.inject(`/internal/listings/${created.id}/floor`)).statusCode).toBe(404); // no token configured
+  });
+
+  it("stores shipping addresses only from signed requests and never returns them publicly", async () => {
+    const body = {
+      target: "redeem",
+      targetId: "123",
+      address: { name: "Ada", phone: "+6590000000", line1: "1 Marina Blvd", city: "Singapore", postalCode: "018989", country: "SG" },
+    };
+    const unsigned = await app.inject({ method: "POST", url: "/shipping", payload: body });
+    expect(unsigned.statusCode).toBe(401);
+    expect((await signed("POST", "/shipping", body)).statusCode).toBe(200);
+    const st = await app.inject(`/shipping/status?target=redeem&targetId=123&wallet=${seller.address}`);
+    expect(st.json()).toEqual({ submitted: true });
+    expect(JSON.stringify(st.json())).not.toContain("Marina");
+    const vault = await app.inject("/vault/shipments/redeem/123");
+    expect(vault.statusCode).toBe(401);
+  });
+
+  it("serves the vault shipping address", async () => {
+    const r = await app.inject("/config");
+    expect(r.json().vaultShippingAddress).toBeTruthy();
+  });
 });

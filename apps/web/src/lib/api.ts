@@ -110,7 +110,7 @@ export function signedRequestMessage(method: string, path: string, timestamp: st
   return `VaultChain API\n${method.toUpperCase()} ${path}\n${timestamp}\n${bodyHash}`;
 }
 
-async function signed<T>(method: "POST" | "DELETE", path: string, body: unknown, address: Address, sign: SignMessage): Promise<T> {
+async function signed<T>(method: "GET" | "POST" | "DELETE", path: string, body: unknown, address: Address, sign: SignMessage): Promise<T> {
   const raw = body === undefined ? undefined : JSON.stringify(body);
   const ts = String(Math.floor(Date.now() / 1000));
   const signature = await sign({ message: signedRequestMessage(method, path, ts, raw) });
@@ -119,7 +119,29 @@ async function signed<T>(method: "POST" | "DELETE", path: string, body: unknown,
 
 // ------------------------------------------------------------------ endpoints
 
+export interface ShippingAddress {
+  name: string;
+  phone: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  region?: string;
+  postalCode: string;
+  country: string;
+}
+export type ShippingTarget = "order" | "swap" | "redeem";
+export type OfferWithListing = Offer & { listing?: ListingView };
+
 export const api = {
+  config: () => read<{ chainId: number | null; vaultShippingAddress: string }>("/config", () => ({ chainId: null, vaultShippingAddress: "VaultChain Vault (demo)" })),
+  offersFor: (q: { buyer?: Address; seller?: Address }) =>
+    read<OfferWithListing[]>(`/offers?${new URLSearchParams(Object.entries(q).filter(([, v]) => v) as [string, string][])}`, () => []),
+  shippingStatus: (target: ShippingTarget, targetId: string, wallet: Address) =>
+    read<{ submitted: boolean }>(`/shipping/status?target=${target}&targetId=${targetId}&wallet=${wallet}`, () => ({ submitted: false })),
+  saveShipping: (body: { target: ShippingTarget; targetId: string; address: ShippingAddress }, a: Address, s: SignMessage) =>
+    signed<{ ok: true }>("POST", "/shipping", body, a, s),
+  vaultShipments: (target: ShippingTarget, targetId: string, a: Address, s: SignMessage) =>
+    signed<{ wallet: Address; createdAt: string; address: ShippingAddress }[]>("GET", `/vault/shipments/${target}/${targetId}`, undefined, a, s),
   cards: (params: Record<string, string | undefined> = {}) => {
     const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v) as [string, string][]);
     return read<CardSummary[]>(`/cards?${qs}`, () => {
@@ -216,11 +238,8 @@ export const api = {
   registerSlab: (body: unknown, a: Address, s: SignMessage) => signed<{ slabId: Hex; tokenId: string; metadataHash: Hex }>("POST", "/vault/slabs", body, a, s),
 
   // HSP (agent payments)
-  hspCheckout: (body: { target: "order" | "swap"; id: Hex; payer: Address }) =>
-    request<{ flowId: string; paymentRequestId: string; payTo: Address; amountUsd: string; prepared: HspPrepared }>("/hsp/checkout", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
+  hspCheckout: (body: { target: "order" | "swap"; id: Hex; payer: Address }, s: SignMessage) =>
+    signed<{ flowId: string; paymentRequestId: string; payTo: Address; amountUsd: string; prepared: HspPrepared }>("POST", "/hsp/checkout", body, body.payer, s),
   hspSubmit: (body: { paymentRequestId: string; signature: Hex; payment_payload: unknown; payment_mandate_contents: unknown; cart_hash: string }) =>
     request<{ ok: true }>("/hsp/submit", { method: "POST", body: JSON.stringify(body) }),
 };
@@ -243,7 +262,7 @@ export interface AgentAction {
 export async function agentChat(body: {
   messages: { role: "user" | "assistant"; content: string }[];
   userAddress?: string;
-  limits?: { maxPerOrderUsd?: number; totalBudgetUsd?: number };
+  limits?: { maxPerOrderUsd?: number; totalBudgetUsd?: number; spentUsd?: number };
 }): Promise<{ reply: string; actions: AgentAction[] }> {
   const r = await fetch(`${AGENT_URL}/chat`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   const j = (await r.json()) as { reply?: string; actions?: AgentAction[]; error?: string };

@@ -30,6 +30,7 @@ const rowToListing = (r: any): Listing => ({
   swapWants: r.swap_wants ?? undefined,
   images: r.images ?? [],
   createdAt: iso(r.created_at)!,
+  verified: r.type === "vault" ? true : Boolean(r.verified),
 });
 
 const rowToOffer = (r: any): Offer => ({
@@ -154,14 +155,25 @@ export function createPgStore(db: Db): Store {
     async createListing(l) {
       const id = l.type === "vault" && l.tokenId ? `vault-${l.tokenId}` : newId("lst");
       const r = await db.query(
-        `INSERT INTO listings (id, type, slab_id, token_id, card_key, cert_number, seller, price_usd, accepts_swap, swap_wants, images)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-         ON CONFLICT (id) DO UPDATE SET price_usd = EXCLUDED.price_usd, accepts_swap = EXCLUDED.accepts_swap,
-           swap_wants = EXCLUDED.swap_wants, images = EXCLUDED.images, status = 'active'
+        `INSERT INTO listings (id, type, slab_id, token_id, card_key, cert_number, seller, price_usd, accepts_swap, swap_wants, images, floor_usd, verified)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+         ON CONFLICT (id) DO UPDATE SET price_usd = EXCLUDED.price_usd, accepts_swap = EXCLUDED.accepts_swap, seller = EXCLUDED.seller,
+           swap_wants = EXCLUDED.swap_wants, images = EXCLUDED.images, floor_usd = EXCLUDED.floor_usd, verified = EXCLUDED.verified, status = 'active'
          RETURNING *`,
-        [id, l.type, l.slabId, l.tokenId ?? null, l.cardKey, l.certNumber, lc(l.seller), l.priceUsd, l.acceptsSwap, l.swapWants ?? null, JSON.stringify(l.images)],
+        [id, l.type, l.slabId.toLowerCase(), l.tokenId ?? null, l.cardKey, l.certNumber, lc(l.seller), l.priceUsd, l.acceptsSwap, l.swapWants ?? null,
+          JSON.stringify(l.images), l.floorUsd ?? null, l.verified],
       );
       return rowToListing(r.rows[0]);
+    },
+    async findOpenListingBySlab(slabId) {
+      const r = await db.query("SELECT * FROM listings WHERE slab_id = $1 AND status IN ('active','reserved') LIMIT 1", [slabId.toLowerCase()]);
+      if (!r.rows[0]) return undefined;
+      const l = rowToListing(r.rows[0]);
+      return { ...l, status: r.rows[0].status, card: (await card(l.cardKey))!, price: await snapshot(db, l.cardKey) };
+    },
+    async listingFloor(id) {
+      const r = await db.query("SELECT floor_usd FROM listings WHERE id = $1", [id]);
+      return n(r.rows[0]?.floor_usd);
     },
     async cancelListing(id) {
       await db.query("UPDATE listings SET status = 'cancelled' WHERE id = $1", [id]);
@@ -170,6 +182,24 @@ export function createPgStore(db: Db): Store {
     async listOffers(listingId) {
       const r = await db.query("SELECT * FROM offers WHERE listing_id = $1 ORDER BY created_at DESC", [listingId]);
       return r.rows.map(rowToOffer);
+    },
+    async listOffersFor(q) {
+      const where: string[] = [];
+      const args: unknown[] = [];
+      if (q.buyer) where.push("o.buyer = $" + args.push(lc(q.buyer)));
+      if (q.seller) where.push("l.seller = $" + args.push(lc(q.seller)));
+      const r = await db.query(
+        "SELECT o.*, row_to_json(l.*) AS l FROM offers o JOIN listings l ON l.id = o.listing_id " +
+          (where.length ? "WHERE " + where.join(" AND ") : "") +
+          " ORDER BY o.created_at DESC LIMIT 100",
+        args,
+      );
+      return Promise.all(
+        r.rows.map(async (row) => {
+          const l = rowToListing(row.l);
+          return { ...rowToOffer(row), listing: { ...l, card: (await card(l.cardKey))!, price: await snapshot(db, l.cardKey) } };
+        }),
+      );
     },
     async createOffer(o) {
       const r = await db.query(
@@ -266,6 +296,25 @@ export function createPgStore(db: Db): Store {
       }));
     },
 
+    async slabInfo(slabId) {
+      const r = await db.query("SELECT card_key, grader, cert_number FROM slabs WHERE slab_id = $1", [slabId.toLowerCase()]);
+      const x = r.rows[0];
+      return x ? { cardKey: x.card_key as Hex, grader: x.grader, certNumber: x.cert_number } : undefined;
+    },
+    async saveShipping(s) {
+      await db.query(
+        `INSERT INTO shipping_addresses (target, target_id, wallet, ciphertext) VALUES ($1,$2,$3,$4)
+         ON CONFLICT (target, target_id, wallet) DO UPDATE SET ciphertext = EXCLUDED.ciphertext, created_at = now()`,
+        [s.target, s.targetId.toLowerCase(), lc(s.wallet), s.ciphertext],
+      );
+    },
+    async shipping(target, targetId) {
+      const r = await db.query(
+        "SELECT wallet, ciphertext, created_at FROM shipping_addresses WHERE target = $1 AND target_id = $2",
+        [target, targetId.toLowerCase()],
+      );
+      return r.rows.map((x) => ({ wallet: x.wallet as Address, ciphertext: x.ciphertext, createdAt: iso(x.created_at)! }));
+    },
     async registerSlab(s) {
       await db.query(
         `INSERT INTO slabs (slab_id, card_key, grader, cert_number, metadata, metadata_hash) VALUES ($1,$2,$3,$4,$5,$6)

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Hex } from "viem";
-import { useAccount, useSignTypedData } from "wagmi";
+import { useAccount, useSignMessage, useSignTypedData } from "wagmi";
 import { Loader2, Zap } from "lucide-react";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/contracts";
@@ -11,7 +11,7 @@ import { short } from "@/lib/format";
 type Step =
   | { s: "idle" }
   | { s: "preparing" }
-  | { s: "confirm"; data: Awaited<ReturnType<typeof api.hspCheckout>> }
+  | { s: "confirm"; data: Awaited<ReturnType<typeof api.hspCheckout>>; at: number }
   | { s: "submitting" }
   | { s: "waiting"; id: string; status: string }
   | { s: "done"; tx?: string }
@@ -22,25 +22,40 @@ type Step =
  * the HSP cart with pay_to = the escrow contract; the user reviews recipient, payer and amount and
  * signs the EIP-3009 authorization in their wallet; the keeper records it on-chain once finalized.
  */
-export function HspPay({ target, id }: { target: "order" | "swap"; id: Hex }) {
+/** HSP quotes are valid for 5 minutes; re-prepare a little before that. */
+const QUOTE_TTL_MS = 4.5 * 60_000;
+
+export function HspPay({ target, id, onActiveChange }: { target: "order" | "swap"; id: Hex; onActiveChange?: (active: boolean) => void }) {
   const { address } = useAccount();
   const { signTypedDataAsync } = useSignTypedData();
+  const { signMessageAsync } = useSignMessage();
   const [step, setStep] = useState<Step>({ s: "idle" });
+
+  // While an HSP payment is in flight the page hides "pay from wallet", so the same amount is never paid twice.
+  const active = step.s !== "idle" && step.s !== "error";
+  useEffect(() => onActiveChange?.(active), [active, onActiveChange]);
 
   async function start() {
     if (!address) return;
     setStep({ s: "preparing" });
     try {
-      setStep({ s: "confirm", data: await api.hspCheckout({ target, id, payer: address }) });
+      setStep({ s: "confirm", data: await api.hspCheckout({ target, id, payer: address }, signMessageAsync), at: Date.now() });
     } catch (e) {
       setStep({ s: "error", msg: errorMessage(e) });
     }
   }
 
   async function signAndSubmit() {
-    if (step.s !== "confirm") return;
-    const { prepared, paymentRequestId } = step.data;
+    if (step.s !== "confirm" || !address) return;
+    let data = step.data;
     try {
+      if (Date.now() - step.at > QUOTE_TTL_MS) {
+        // quote expired while the user was reviewing: prepare a fresh payment with the same amount due
+        setStep({ s: "preparing" });
+        data = await api.hspCheckout({ target, id, payer: address }, signMessageAsync);
+        setStep({ s: "confirm", data, at: Date.now() });
+      }
+      const { prepared, paymentRequestId } = data;
       const signature = await signTypedDataAsync(prepared.eip712 as Parameters<typeof signTypedDataAsync>[0]);
       setStep({ s: "submitting" });
       await api.hspSubmit({

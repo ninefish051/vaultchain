@@ -9,10 +9,11 @@ await migrate(db);
 for (const card of DEMO_CARDS) {
   await upsertCard(db, card);
   const sales = demoSales(card.cardKey);
-  await insertSamples(db, card.cardKey, sales.map((s, i) => ({
+  await insertSamples(db, card.cardKey, sales.map((s) => ({
     ...s,
+    source: `demo:${s.source}`,
     observedAt: new Date(s.observedAt),
-    externalId: `demo:${card.cardKey}:${i}`,
+    externalId: `demo:${card.cardKey}:${s.source}:${s.observedAt}:${s.priceUsd}`, // same ids as the demo collector
   })));
   const snap = demoSnapshot(card.cardKey)!;
   for (const point of demoPriceHistory(card.cardKey)) {

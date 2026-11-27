@@ -11,6 +11,7 @@ import { errorMessage, useDeployment, useTx } from "@/lib/contracts";
 import { short, timeLeft, usd } from "@/lib/format";
 import { fromJson, orderTypedData, swapTypedData } from "@/lib/terms";
 import { Credits } from "@/components/Credits";
+import { Offers } from "@/components/Offers";
 import { Badge, Empty, PageHeader, Spinner, TxStatus } from "@/components/ui";
 
 function ProposalRow({ p, me }: { p: Proposal; me: Address }) {
@@ -120,6 +121,8 @@ export default function OrdersPage() {
       <div className="panel mt-3 divide-y divide-ink-700">
         {proposals.isLoading ? <Spinner /> : open.length === 0 ? <div className="px-4 py-6 text-sm text-neutral-500">Nothing waiting.</div> : open.map((p) => <ProposalRow key={p.id} p={p} me={address} />)}
       </div>
+
+      <Offers me={address} />
 
       <h2 className="mt-10 text-lg font-semibold">Escrow orders</h2>
       <div className="panel mt-3 divide-y divide-ink-700">

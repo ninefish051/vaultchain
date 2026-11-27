@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Abi } from "viem";
 import { useAccount } from "wagmi";
@@ -9,12 +10,14 @@ import { api } from "@/lib/api";
 import { useDeployment, useTx } from "@/lib/contracts";
 import { cardTitle, gradeLabel, usd } from "@/lib/format";
 import { CardImage } from "@/components/CardTile";
+import { ShippingForm } from "@/components/ShippingForm";
 import { Badge, Empty, PageHeader, Spinner, Stat, TxStatus } from "@/components/ui";
 
 export default function AssetsPage() {
   const { address } = useAccount();
   const { deployment } = useDeployment();
   const tx = useTx();
+  const [redeeming, setRedeeming] = useState<string>(); // tokenId waiting for an address
   const assets = useQuery({ queryKey: ["assets", address], queryFn: () => api.assets(address!), enabled: !!address });
   const cards = useQuery({ queryKey: ["cards", "all"], queryFn: () => api.cards() });
   const myListings = useQuery({ queryKey: ["listings", "mine", address], queryFn: () => api.listings({ seller: address }), enabled: !!address });
@@ -41,6 +44,18 @@ export default function AssetsPage() {
         <Stat label="Active listings" value={myListings.data?.length ?? 0} />
       </div>
       <TxStatus state={tx.state} />
+      {redeeming && (
+        <div className="panel mt-6 p-4">
+          <div className="mb-3 text-sm text-neutral-300">
+            Redeeming locks the NFT until the vault hands over the slab, then burns it. Add a shipping address, then confirm.
+          </div>
+          <ShippingForm target="redeem" targetId={redeeming} title="Ship the slab to" />
+          <div className="mt-3 flex gap-2">
+            <button className="btn-gold" onClick={() => redeem(redeeming, "requestRedeem")?.then(() => setRedeeming(undefined))}>Confirm redemption</button>
+            <button className="btn-ghost" onClick={() => setRedeeming(undefined)}>Cancel</button>
+          </div>
+        </div>
+      )}
       <div className="mt-6">
         {assets.isLoading ? (
           <Spinner />
@@ -65,7 +80,7 @@ export default function AssetsPage() {
                       <>
                         <Link className="btn-ghost py-1.5 text-xs" href={`/sell?cardKey=${a.cardKey}`}>Sell</Link>
                         <Link className="btn-ghost py-1.5 text-xs" href="/swap/new">Swap</Link>
-                        <button className="btn-ghost py-1.5 text-xs" disabled={!deployment} onClick={() => redeem(a.tokenId, "requestRedeem")}>Redeem slab</button>
+                        <button className="btn-ghost py-1.5 text-xs" disabled={!deployment} onClick={() => setRedeeming(a.tokenId)}>Redeem slab</button>
                       </>
                     )}
                     {a.custody === "RedeemLocked" && (

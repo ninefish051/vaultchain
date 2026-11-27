@@ -10,7 +10,7 @@ export const demo: Collector = {
     return demoSales(card.cardKey).map((s, i) => ({
       ...s,
       source: `demo:${s.source}`,
-      externalId: `demo:${card.cardKey}:${i}`, // same ids as db seed:demo, so re-runs dedupe
+      externalId: `demo:${card.cardKey}:${s.source}:${s.observedAt}:${s.priceUsd}`, // stable per observation
       observedAt: new Date(s.observedAt),
     }));
   },
