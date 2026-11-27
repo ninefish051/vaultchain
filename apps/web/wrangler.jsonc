@@ -18,5 +18,13 @@
       "service": "vaultchain-web"
     }
   ],
+  // Custom domains: Cloudflare creates the DNS records and certificates. The zone must be on
+  // this Cloudflare account. api / agent subdomains point at the EC2 Elastic IP instead.
+  "routes": [
+    { "pattern": "vaultchain.asia", "custom_domain": true },
+    { "pattern": "www.vaultchain.asia", "custom_domain": true }
+  ],
+  // Keep the workers.dev URL as a fallback and for testing.
+  "workers_dev": true,
   "observability": { "enabled": true }
 }
