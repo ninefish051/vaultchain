@@ -1,0 +1,21 @@
+{
+  "name": "@vaultchain/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "migrate": "tsx src/migrate-cli.ts",
+    "seed:demo": "tsx src/seed-demo.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@vaultchain/shared": "workspace:*",
+    "pg": "8.23.1",
+    "viem": "2.58.8"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1"
+  }
+}

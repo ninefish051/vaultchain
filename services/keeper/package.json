@@ -1,0 +1,18 @@
+{
+  "name": "@vaultchain/keeper",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@vaultchain/chain": "workspace:*",
+    "@vaultchain/db": "workspace:*",
+    "@vaultchain/hsp": "workspace:*",
+    "@vaultchain/shared": "workspace:*",
+    "viem": "2.58.8"
+  }
+}

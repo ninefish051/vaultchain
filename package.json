@@ -6,7 +6,17 @@
   "scripts": {
     "contracts:build": "pnpm --filter @vaultchain/contracts build",
     "contracts:test": "pnpm --filter @vaultchain/contracts test",
-    "build": "pnpm -r build",
-    "test": "pnpm -r test"
+    "abis": "pnpm --filter @vaultchain/shared gen:abis",
+    "dev:web": "pnpm --filter @vaultchain/web dev",
+    "dev:api": "pnpm --filter @vaultchain/api dev",
+    "typecheck": "pnpm -r --filter !@vaultchain/contracts typecheck",
+    "test": "pnpm -r --filter !@vaultchain/contracts test",
+    "build": "pnpm --filter @vaultchain/web build"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.7",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vitest": "4.1.12"
   }
 }

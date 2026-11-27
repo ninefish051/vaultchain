@@ -224,7 +224,7 @@ contract SwapEscrow is AccessControl, ReentrancyGuard, EIP712 {
 
         uint256 base = pa.fairValueUsd > pb.fairValueUsd ? pa.fairValueUsd : pb.fairValueUsd;
         uint32 vol = pa.volatilityBps > pb.volatilityBps ? pa.volatilityBps : pb.volatilityBps;
-        uint128 deposit = uint128((base * depositBpsFor(vol)) / 10_000);
+        uint128 deposit = uint128(_ceilToCent((base * depositBpsFor(vol)) / 10_000)); // whole cents, see VaultEscrow
 
         Swap storage s = _swaps[swapId];
         s.legs[0] = t.a;
@@ -602,6 +602,11 @@ contract SwapEscrow is AccessControl, ReentrancyGuard, EIP712 {
     function _requireStatus(bytes32 swapId, Status st) private view returns (Swap storage s) {
         s = _swaps[swapId];
         if (s.status != st) revert WrongStatus(s.status);
+    }
+
+    /// @dev USDC has 6 decimals; 1 cent = 10_000 units.
+    function _ceilToCent(uint256 x) private pure returns (uint256) {
+        return ((x + 9_999) / 10_000) * 10_000;
     }
 
     function _useNonce(address account, uint256 nonce) private {

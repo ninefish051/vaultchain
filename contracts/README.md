@@ -56,10 +56,12 @@ Swap default compensation = `max(5% of the higher card, (fair_defaulter − ref_
 ```bash
 git submodule update --init --depth 1   # forge-std + OpenZeppelin v5.4.0
 forge build
-forge test -vv
+forge test -vv        # 77 tests
 # deploy (USDC_ADDRESS empty => deploys MockUSDC for testnets)
 cp ../.env.example ../.env   # fill PRIVATE_KEY etc.
 source ../.env && forge script script/Deploy.s.sol --rpc-url hsk_testnet --broadcast
 ```
 
-Addresses are written to `deployments/<chainId>.json` for the services and web app.
+Addresses are written to `deployments/<chainId>.json`; run `pnpm --filter @vaultchain/shared sync:deployments` (and `pnpm abis` after contract changes) so the services and web app pick them up.
+
+Deposits are rounded up to a whole cent (USDC has 6 decimals) so USD-denominated rails such as HSP carts can pay them exactly.

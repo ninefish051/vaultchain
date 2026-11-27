@@ -1,0 +1,14 @@
+# TLS certificates are issued automatically. Point these DNS records (Route 53) at the Elastic IP.
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy web:3000
+}
+
+api.{$DOMAIN} {
+	encode gzip
+	reverse_proxy api:4000
+}
+
+agent.{$DOMAIN} {
+	reverse_proxy agent:4100
+}

@@ -1,0 +1,19 @@
+{
+  "name": "@vaultchain/price-indexer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
+    "once": "tsx src/main.ts --once",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@vaultchain/db": "workspace:*",
+    "@vaultchain/shared": "workspace:*",
+    "playwright": "1.65.0",
+    "viem": "2.58.8"
+  }
+}

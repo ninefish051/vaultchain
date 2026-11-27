@@ -10,3 +10,8 @@ contracts/cache/
 contracts/broadcast/*/31337/
 .DS_Store
 contracts/deployments/31337.json
+
+# local tooling
+.claude/
+*.tsbuildinfo
+next-env.d.ts

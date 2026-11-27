@@ -1,0 +1,90 @@
+# VaultChain on a single EC2 host (Elastic IP → allow-listed by HSP).
+# Production uses RDS instead of the local postgres service: set DATABASE_URL in .env and
+# start with `docker compose --profile app up -d` (postgres runs only with --profile localdb).
+#
+#   cd infra && cp .env.example .env && ./aws/load-secrets.sh >> .env   # on EC2
+#   docker compose --profile localdb --profile app up -d --build        # local, everything
+
+x-service: &service
+  restart: unless-stopped
+  env_file: .env
+  logging:
+    driver: awslogs
+    options:
+      awslogs-region: ${AWS_REGION:-ap-southeast-1}
+      awslogs-group: /vaultchain/${COMPOSE_PROJECT_NAME:-prod}
+      awslogs-create-group: "true"
+
+services:
+  postgres:
+    profiles: [localdb]
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vaultchain
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vaultchain}
+      POSTGRES_DB: vaultchain
+    volumes: [pgdata:/var/lib/postgresql/data]
+    ports: ["127.0.0.1:5432:5432"]
+    logging: { driver: json-file }
+
+  api:
+    <<: *service
+    profiles: [app]
+    build: { context: .., dockerfile: infra/docker/Dockerfile.service, args: { SERVICE: api } }
+    environment: { PORT: "4000" }
+    expose: ["4000"]
+
+  price-indexer:
+    <<: *service
+    profiles: [app]
+    build: { context: .., dockerfile: infra/docker/Dockerfile.service, args: { SERVICE: price-indexer, INSTALL_BROWSERS: "true" } }
+    user: root # Chromium sandbox
+    depends_on: [api]
+
+  oracle-publisher:
+    <<: *service
+    profiles: [app]
+    build: { context: .., dockerfile: infra/docker/Dockerfile.service, args: { SERVICE: oracle-publisher } }
+    depends_on: [price-indexer]
+
+  keeper:
+    <<: *service
+    profiles: [app]
+    build: { context: .., dockerfile: infra/docker/Dockerfile.service, args: { SERVICE: keeper } }
+    depends_on: [api]
+
+  agent:
+    <<: *service
+    profiles: [app]
+    build: { context: .., dockerfile: infra/docker/Dockerfile.service, args: { SERVICE: agent } }
+    environment: { PORT: "4100", API_URL: "http://api:4000" }
+    expose: ["4100"]
+
+  web:
+    <<: *service
+    profiles: [app]
+    build:
+      context: ..
+      dockerfile: infra/docker/Dockerfile.web
+      args:
+        NEXT_PUBLIC_API_URL: https://api.${DOMAIN}
+        NEXT_PUBLIC_AGENT_URL: https://agent.${DOMAIN}
+        NEXT_PUBLIC_CHAIN_ID: ${CHAIN_ID:-133}
+        NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${WALLETCONNECT_PROJECT_ID:-}
+    expose: ["3000"]
+
+  caddy:
+    profiles: [app]
+    image: caddy:2
+    restart: unless-stopped
+    environment: { DOMAIN: "${DOMAIN}" }
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy:/data
+    depends_on: [web, api, agent]
+
+volumes:
+  pgdata:
+  caddy:

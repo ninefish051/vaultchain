@@ -1,0 +1,22 @@
+{
+  "name": "@vaultchain/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fastify/cors": "11.4.1",
+    "@vaultchain/chain": "workspace:*",
+    "@vaultchain/db": "workspace:*",
+    "@vaultchain/hsp": "workspace:*",
+    "@vaultchain/shared": "workspace:*",
+    "fastify": "5.12.8",
+    "viem": "2.58.8",
+    "zod": "4.6.7"
+  }
+}

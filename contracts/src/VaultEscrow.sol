@@ -214,7 +214,8 @@ contract VaultEscrow is AccessControl, ReentrancyGuard, EIP712 {
 
         CardPriceOracle.PricePoint memory p = oracle.getFreshPrice(t.cardKey, config.maxPriceAge);
         _checkPriceBounds(t.priceUsd, p.fairValueUsd);
-        uint128 deposit = uint128((uint256(t.priceUsd) * depositBpsFor(p.volatilityBps)) / 10_000);
+        // rounded up to a whole cent so fiat-denominated rails (HSP carts are USD with 2 decimals) can pay it exactly
+        uint128 deposit = uint128(_ceilToCent((uint256(t.priceUsd) * depositBpsFor(p.volatilityBps)) / 10_000));
 
         Order storage o = _orders[orderId];
         o.buyer = t.buyer;
@@ -533,6 +534,11 @@ contract VaultEscrow is AccessControl, ReentrancyGuard, EIP712 {
     function _requireStatus(bytes32 orderId, Status s) private view returns (Order storage o) {
         o = _orders[orderId];
         if (o.status != s) revert WrongStatus(o.status);
+    }
+
+    /// @dev USDC has 6 decimals; 1 cent = 10_000 units.
+    function _ceilToCent(uint256 x) private pure returns (uint256) {
+        return ((x + 9_999) / 10_000) * 10_000;
     }
 
     function _useNonce(address account, uint256 nonce) private {
