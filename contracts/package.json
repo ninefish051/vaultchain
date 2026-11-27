@@ -1,0 +1,9 @@
+{
+  "name": "@vaultchain/contracts",
+  "private": true,
+  "scripts": {
+    "build": "forge build",
+    "test": "forge test -vv",
+    "fmt": "forge fmt"
+  }
+}

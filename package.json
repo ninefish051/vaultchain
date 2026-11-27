@@ -1,0 +1,12 @@
+{
+  "name": "vaultchain",
+  "private": true,
+  "packageManager": "pnpm@12.11.2",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "contracts:build": "pnpm --filter @vaultchain/contracts build",
+    "contracts:test": "pnpm --filter @vaultchain/contracts test",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test"
+  }
+}
