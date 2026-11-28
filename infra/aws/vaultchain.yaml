@@ -35,6 +35,10 @@ Parameters:
     Type: String
     Description: Full PostgreSQL 16 version (e.g. 16.x). deploy-stack.sh resolves the region default on first create.
     AllowedPattern: "16\\.[0-9]+"
+  GitHubRepo:
+    Type: String
+    Default: ninefish051/vaultchain
+    Description: owner/name of the repository whose main branch may deploy (GitHub Actions OIDC).
   AmiId:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
@@ -296,7 +300,52 @@ Resources:
       AllocationId: !GetAtt HostEip.AllocationId
       InstanceId: !Ref Host
 
+  # ---------- CI/CD: GitHub Actions deploys main through SSM, with short-lived OIDC credentials ----------
+  GitHubOidc:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList: [sts.amazonaws.com]
+
+  GitHubDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: Assumed by GitHub Actions on pushes to main; may only redeploy the VaultChain host.
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Federated: !Ref GitHubOidc }
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub "repo:${GitHubRepo}:ref:refs/heads/main"
+      Policies:
+        - PolicyName: redeploy-host
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: RunDeployOnHost
+                Effect: Allow
+                Action: ssm:SendCommand
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/${Host}"
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}::document/AWS-RunShellScript"
+              - Sid: ReadCommandResult
+                Effect: Allow
+                Action: [ssm:GetCommandInvocation, ssm:ListCommandInvocations]
+                Resource: "*"
+              - Sid: FindHost
+                Effect: Allow
+                Action: cloudformation:DescribeStacks
+                Resource: !Ref AWS::StackId
+
 Outputs:
+  GitHubDeployRoleArn:
+    Description: Set as the GitHub repository variable AWS_DEPLOY_ROLE_ARN.
+    Value: !GetAtt GitHubDeployRole.Arn
   ElasticIp:
     Description: Give this to HSP for the allow-list; point api / agent DNS here (DNS only).
     Value: !Ref HostEip

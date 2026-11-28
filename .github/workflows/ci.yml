@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch: # manual run on main: CI, then deploy everything
 
 jobs:
   contracts:
@@ -32,3 +33,98 @@ jobs:
       - run: pnpm build
       - name: Cloudflare Worker bundle
         run: pnpm --filter @vaultchain/web build:cf
+
+  # ------------------------------------------------------------------ CD (main only: pushes and manual runs)
+  # Deploys only what the push changed, after both CI jobs pass. No canary: one host, one Worker.
+  changes:
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.diff.outputs.services }}
+      web: ${{ steps.diff.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: diff
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            files=$(git ls-files)   # manual run: deploy everything
+          elif [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            files=$(git ls-files)   # new branch or force push: treat everything as changed
+          else
+            files=$(git diff --name-only "$BEFORE" "$GITHUB_SHA")
+          fi
+          echo "$files"
+          svc=false; web=false
+          echo "$files" | grep -qE '^(services/|packages/|pnpm-lock.yaml|infra/docker-compose.yml|infra/Caddyfile|infra/\.env\.example|infra/docker/|infra/aws/host-deploy.sh)' && svc=true
+          echo "$files" | grep -qE '^(apps/web/|packages/|pnpm-lock.yaml)' && web=true
+          echo "services=$svc" >> "$GITHUB_OUTPUT"
+          echo "web=$web" >> "$GITHUB_OUTPUT"
+          echo "deploy services: $svc · deploy web: $web"
+
+  deploy-services:
+    needs: [contracts, typescript, changes]
+    if: needs.changes.outputs.services == 'true'
+    runs-on: ubuntu-latest
+    concurrency: { group: deploy-services, cancel-in-progress: false }
+    permissions:
+      id-token: write # OIDC → short-lived AWS credentials (role allows SSM redeploy of the host only)
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ap-southeast-2
+      - name: Redeploy the EC2 host (pull main, rebuild, restart)
+        run: ./infra/aws/redeploy.sh
+      - name: Health check
+        run: |
+          for i in $(seq 1 30); do
+            body=$(curl -fsS -m 10 https://api.vaultchain.asia/health || true)
+            case "$body" in *'"ok":true'*) echo "api: $body"; exit 0;; esac
+            sleep 5
+          done
+          echo "api did not become healthy"; exit 1
+
+  deploy-web:
+    needs: [contracts, typescript, changes]
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    concurrency: { group: deploy-web, cancel-in-progress: false }
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+      NEXT_PUBLIC_AGENT_URL: ${{ vars.NEXT_PUBLIC_AGENT_URL }}
+      NEXT_PUBLIC_CHAIN_ID: ${{ vars.NEXT_PUBLIC_CHAIN_ID }}
+      NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ vars.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID }}
+      NEXT_PUBLIC_ENABLE_TEST_FAUCET: ${{ vars.NEXT_PUBLIC_ENABLE_TEST_FAUCET }} # TESTNET ONLY — unset before mainnet
+    steps:
+      - name: Check Cloudflare credentials
+        id: cf
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::warning::CLOUDFLARE_API_TOKEN secret is not set; skipping the frontend deploy."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.cf.outputs.skip != 'true'
+      - uses: pnpm/action-setup@v4
+        if: steps.cf.outputs.skip != 'true'
+      - uses: actions/setup-node@v4
+        if: steps.cf.outputs.skip != 'true'
+        with:
+          node-version: 22
+          cache: pnpm
+      - if: steps.cf.outputs.skip != 'true'
+        run: pnpm install --frozen-lockfile
+      - name: Build and deploy the Worker
+        if: steps.cf.outputs.skip != 'true'
+        run: pnpm --filter @vaultchain/web deploy:cf
+      - name: Smoke check
+        if: steps.cf.outputs.skip != 'true'
+        run: curl -fsS -m 20 -o /dev/null -w "vaultchain.asia %{http_code}\n" https://vaultchain.asia/
