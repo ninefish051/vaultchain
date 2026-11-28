@@ -20,6 +20,8 @@ if [ "${SKIP_PULL:-}" != "1" ]; then
   git checkout --quiet "$REPO_REF"
   git reset --quiet --hard "origin/$REPO_REF"
   git submodule update --init --recursive --quiet
+  # this file may have just changed: run the pulled version
+  exec env SKIP_PULL=1 "$REPO/infra/aws/host-deploy.sh"
 fi
 
 APP_JSON=$(aws secretsmanager get-secret-value --secret-id "$APP_SECRET_ID" --query SecretString --output text)
