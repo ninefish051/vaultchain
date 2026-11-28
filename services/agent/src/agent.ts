@@ -16,7 +16,12 @@ import { respondToOffer } from "./sellerAgent";
  * only accepts calls from an allow-listed IP (the EC2 Elastic IP).
  */
 
-export const MODEL = process.env.AGENT_MODEL ?? "claude-opus-5-5";
+// Haiku 5.5 is the cheapest current model ($0.10 / $0.50 per MTok vs $4 / $20 for Opus 5.5).
+export const MODEL = process.env.AGENT_MODEL ?? "claude-haiku-5-5";
+// Server-side refusal fallbacks exist for Opus / Sonnet / Fable, not for Haiku.
+const FALLBACK = /^claude-(opus|sonnet|fable)-/.test(MODEL)
+  ? { betas: ["server-side-fallback-2026-07-01"] as Anthropic.AnthropicBeta[], fallbacks: "default" as const }
+  : {};
 
 export interface Limits {
   maxPerOrderUsd?: number;
@@ -210,8 +215,7 @@ export async function runBuyerAgent(input: {
     max_iterations: 12,
     system: [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }],
     output_config: { effort: "medium" },
-    betas: ["server-side-fallback-2026-07-01"],
-    fallbacks: "default",
+    ...FALLBACK,
     tools,
     messages: [...input.messages, { role: "user", content: [{ type: "text", text: `<session>\n${context}\n</session>` }] }],
   });

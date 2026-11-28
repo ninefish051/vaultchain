@@ -107,7 +107,7 @@ See [`.env.example`](.env.example) for contracts and [`infra/.env.example`](infr
 | `VAULT_SHIPPING_ADDRESS` | api | shown to sellers shipping slabs in for inspection |
 | `INTERNAL_TOKEN` | api, agent | lets the seller agent read a listing's private auto-accept floor |
 | `HSP_MCP_URL`, `HSP_MERCHANT_NAME` | api, keeper | the server IP must be allow-listed by HSP |
-| `ANTHROPIC_API_KEY`, `AGENT_MODEL` | agent | default `claude-opus-5-5` |
+| `ANTHROPIC_API_KEY`, `AGENT_MODEL` | agent | default `claude-haiku-5-5` (cheapest; set `claude-sonnet-5-5` for stronger negotiation) |
 | `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_AGENT_URL`, `NEXT_PUBLIC_CHAIN_ID`, `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | web | build-time, set where the Cloudflare build runs |
 | `CORS_ORIGINS` | api, agent | comma-separated frontend origins (Cloudflare domain and `workers.dev` URL) |
 
