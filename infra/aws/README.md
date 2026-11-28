@@ -1,10 +1,10 @@
-# AWS deployment (ap-southeast-1)
+# AWS deployment (ap-southeast-2)
 
 Hackathon / v1 topology: one EC2 host running the services with Docker Compose behind an Elastic IP. The frontend is not on this host; it runs on Cloudflare Workers ([../cloudflare.md](../cloudflare.md)). The Elastic IP matters: HSP only accepts MCP calls from allow-listed IPs.
 
 | Resource | Purpose | Notes |
 |---|---|---|
-| EC2 `t3.medium` (Amazon Linux 2023) | all services via `infra/docker-compose.yml` | instance role: read `vaultchain/*` secret, write CloudWatch Logs |
+| EC2 `t3.small` (Free plan: free-tier types only) (Amazon Linux 2023) | all services via `infra/docker-compose.yml` | instance role: read `vaultchain/*` secret, write CloudWatch Logs |
 | Elastic IP | stable egress IP for HSP allow-list + DNS | report it to HSP before integration |
 | RDS PostgreSQL 16 (`db.t4g.micro`) | `DATABASE_URL` | private subnet, SG allows 5432 from the EC2 SG only |
 | Secrets Manager `vaultchain/prod` | JSON: `ORACLE_SIGNER_KEY`, `RELAYER_KEY`, `ANTHROPIC_API_KEY`, `EBAY_*`, `PRICECHARTING_TOKEN`, `PSA_API_TOKEN`, `SHIPPING_ENC_KEY`, `INTERNAL_TOKEN` | loaded by `load-secrets.sh` |

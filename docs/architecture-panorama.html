@@ -1,0 +1,598 @@
+<title>VaultChain 技术全景图</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: 海报式全景图。顶部天空横幅 + 编号分区面板（整行 / 双列交替），每个面板内是带粗箭头的流程链。
+   单一明亮主题（刻意不做暗色），所有颜色显式设定。 */
+:root {
+  color-scheme: light;
+  --sky: #dff1ff;
+  --ink: #1b2a4a;
+  --ink-soft: #4a5878;
+  --paper: #ffffff;
+  --gold: #ffd23f;
+  --gold-deep: #f5a700;
+  --blue: #2f7cf6;   --blue-s: #e6f0ff;
+  --green: #22a35a;  --green-s: #e3f7ea;
+  --purple: #8455e8; --purple-s: #efe8ff;
+  --orange: #f27a1a; --orange-s: #fff0e2;
+  --teal: #0f9fa8;   --teal-s: #dcf6f7;
+  --indigo: #4453d6; --indigo-s: #e7e9ff;
+  --red: #e2425c;    --red-s: #ffe6ea;
+  --font-display: "ZCOOL KuaiLe", "Baloo 2", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-latin: "Baloo 2", "Noto Sans SC", system-ui, sans-serif;
+  --font-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--sky);
+  background-image: radial-gradient(rgba(47,124,246,.13) 1.2px, transparent 1.2px);
+  background-size: 18px 18px;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.wrap {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding-block: 0 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* ---------- hero ---------- */
+.hero {
+  margin-top: calc(-1 * env(safe-area-inset-top, 0px));
+  padding-top: calc(env(safe-area-inset-top, 0px) + 22px);
+  background:
+    linear-gradient(180deg, #7cc4ff 0%, #b8e1ff 62%, var(--sky) 100%);
+  position: relative;
+  overflow: hidden;
+}
+.hero::after {               /* 城市剪影：一排卡砖（slab）堆成的天际线 */
+  content: "";
+  position: absolute; left: 0; right: 0; bottom: 0; height: 46px;
+  background:
+    repeating-linear-gradient(90deg, rgba(27,42,74,.10) 0 26px, transparent 26px 34px, rgba(27,42,74,.16) 34px 52px, transparent 52px 64px);
+  -webkit-mask: linear-gradient(180deg, transparent 0, #000 45%);
+          mask: linear-gradient(180deg, transparent 0, #000 45%);
+}
+.hero-in {
+  max-width: 1480px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-bottom: 34px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 20px;
+  position: relative; z-index: 1;
+}
+.mascot { width: 128px; height: auto; filter: drop-shadow(0 6px 0 rgba(27,42,74,.18)); }
+.title-block { text-align: center; min-width: 0; }
+h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(34px, 5.6vw, 72px);
+  line-height: 1.05;
+  color: var(--gold);
+  -webkit-text-stroke: 7px var(--ink);
+  paint-order: stroke fill;
+  text-shadow: 0 6px 0 var(--ink);
+  letter-spacing: .02em;
+  text-wrap: balance;
+}
+h1 .latin { font-family: var(--font-latin); font-weight: 800; letter-spacing: 0; }
+.subtitle {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 6px 26px;
+  background: var(--gold);
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: clamp(16px, 2.1vw, 26px);
+  color: var(--ink);
+  box-shadow: 0 4px 0 var(--ink);
+}
+.stamp {
+  width: 168px; aspect-ratio: 1; max-width: 100%;
+  display: grid; place-items: center; text-align: center;
+  background: var(--gold);
+  clip-path: polygon(50% 0,61% 13%,77% 6%,80% 23%,96% 26%,89% 41%,100% 52%,88% 63%,94% 79%,77% 80%,72% 96%,57% 88%,44% 100%,35% 86%,18% 93%,16% 76%,1% 70%,9% 55%,0 41%,13% 32%,9% 15%,26% 15%,31% 0,44% 10%);
+  transform: rotate(-8deg);
+}
+.stamp b { font-family: var(--font-latin); font-weight: 800; font-size: 27px; line-height: 1; color: var(--red); display: block; }
+.stamp span { font-size: 12px; font-weight: 700; color: var(--ink); display: block; margin-top: 4px; }
+
+/* ---------- grid of panels ---------- */
+.board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 4px; }
+.panel {
+  --c: var(--blue); --cs: var(--blue-s);
+  grid-column: span 1;
+  background: var(--cs);
+  border: 3px solid var(--c);
+  border-radius: 18px;
+  padding: 14px 16px 12px;
+  position: relative;
+  box-shadow: 0 5px 0 color-mix(in srgb, var(--c) 45%, transparent);
+  min-width: 0;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.panel.full { grid-column: 1 / -1; }
+.p-blue   { --c: var(--blue);   --cs: var(--blue-s); }
+.p-green  { --c: var(--green);  --cs: var(--green-s); }
+.p-purple { --c: var(--purple); --cs: var(--purple-s); }
+.p-orange { --c: var(--orange); --cs: var(--orange-s); }
+.p-teal   { --c: var(--teal);   --cs: var(--teal-s); }
+.p-indigo { --c: var(--indigo); --cs: var(--indigo-s); }
+.p-red    { --c: var(--red);    --cs: var(--red-s); }
+
+.tag {
+  align-self: flex-start;
+  display: inline-flex; align-items: baseline; gap: 10px;
+  margin: -30px 0 0 -6px;
+  padding: 3px 22px 4px 12px;
+  background: var(--paper);
+  border: 3px solid var(--c);
+  border-radius: 14px 26px 26px 14px;
+}
+.tag .no {
+  font-family: var(--font-latin); font-weight: 800; font-size: 30px; line-height: 1;
+  color: var(--gold); -webkit-text-stroke: 4px var(--ink); paint-order: stroke fill;
+}
+.tag h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 24px; color: var(--ink); }
+.panel { margin-top: 18px; }
+
+/* ---------- flow chain ---------- */
+.flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; }
+.node {
+  flex: 1 1 170px;
+  min-width: 0;
+  background: var(--paper);
+  border: 2.5px solid color-mix(in srgb, var(--c) 70%, var(--ink));
+  border-radius: 14px;
+  padding: 0 12px 10px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.node-h {
+  margin: -2px -12px 2px;
+  padding: 6px 12px;
+  background: var(--c);
+  color: #fff;
+  border-radius: 11px 11px 0 0;
+  font-family: var(--font-display);
+  font-size: 18px;
+  display: flex; align-items: center; gap: 8px;
+}
+.node-h svg { width: 20px; height: 20px; flex: none; }
+.node ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 3px; }
+.node li { position: relative; padding-left: 14px; font-size: 13px; }
+.node li::before {
+  content: ""; position: absolute; left: 0; top: .55em;
+  width: 7px; height: 7px; border-radius: 50%; background: var(--c);
+}
+.node li b { font-weight: 700; }
+.arr {
+  flex: 0 0 auto; align-self: center;
+  width: 34px; height: 30px;
+  display: grid; place-items: center;
+}
+.arr svg { width: 34px; height: 30px; }
+.arr.down { width: 100%; height: 26px; }
+.arr.down svg { transform: rotate(90deg); }
+
+/* small pill chips (compact flows) */
+.chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 11px;
+  background: var(--paper);
+  border: 2px solid color-mix(in srgb, var(--c) 70%, var(--ink));
+  border-radius: 10px;
+  font-weight: 700; font-size: 13px;
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--c) 35%, transparent);
+}
+.chip svg { width: 16px; height: 16px; color: var(--c); flex: none; }
+.chip small { font-weight: 500; color: var(--ink-soft); font-size: 12px; }
+.chip.hot { background: var(--gold); border-color: var(--ink); }
+.chip.warn { background: var(--red-s); border-color: var(--red); }
+.chips .arr { width: 26px; height: 22px; }
+.chips .arr svg { width: 26px; height: 22px; }
+.mono { font-family: var(--font-mono); font-size: 12px; }
+
+.foot {
+  margin-top: auto;
+  background: color-mix(in srgb, var(--c) 14%, var(--paper));
+  border-radius: 10px;
+  padding: 6px 12px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.foot b { color: color-mix(in srgb, var(--c) 75%, var(--ink)); }
+
+/* contract tiles */
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; }
+.tile {
+  background: var(--paper);
+  border: 2px solid color-mix(in srgb, var(--c) 70%, var(--ink));
+  border-radius: 12px;
+  padding: 8px 10px;
+  display: flex; flex-direction: column; gap: 2px;
+  min-width: 0;
+}
+.tile code { font-family: var(--font-mono); font-size: 12.5px; font-weight: 500; color: color-mix(in srgb, var(--c) 80%, var(--ink)); overflow-wrap: anywhere; }
+.tile span { font-size: 12.5px; color: var(--ink-soft); }
+
+/* formula card */
+.formula {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+  background: var(--paper);
+  border: 2.5px dashed var(--c);
+  border-radius: 12px;
+  padding: 8px 14px;
+}
+.formula .eq { font-family: var(--font-mono); font-size: 15px; font-weight: 500; }
+.formula .eq em { font-style: normal; color: var(--red); }
+.formula p { margin: 0; font-size: 12.5px; color: var(--ink-soft); flex: 1 1 220px; }
+
+/* EC2 box */
+.ec2 {
+  background: var(--paper);
+  border: 2.5px solid var(--ink);
+  border-radius: 14px;
+  padding: 0 10px 10px;
+}
+.ec2 .node-h { background: var(--ink); margin: -2px -10px 8px; }
+.svc { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 6px; }
+.svc div {
+  background: var(--teal-s);
+  border: 2px solid var(--teal);
+  border-radius: 9px;
+  padding: 5px 8px;
+  font-weight: 700; font-size: 13px;
+  min-width: 0;
+}
+.svc div small { display: block; font-weight: 500; font-size: 11.5px; color: var(--ink-soft); }
+.aws-side { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
+
+/* split row: flow + side note */
+.split { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+.branch { display: flex; flex-direction: column; gap: 6px; }
+
+/* timeline */
+.timeline { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 0; position: relative; }
+.timeline::before {
+  content: ""; position: absolute; left: 4%; right: 4%; top: 15px; height: 5px;
+  background: repeating-linear-gradient(90deg, var(--c) 0 14px, transparent 14px 22px);
+  border-radius: 3px;
+}
+.tl { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 0 6px; position: relative; }
+.tl .dot {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--gold); border: 3px solid var(--ink);
+  display: grid; place-items: center;
+  font-family: var(--font-latin); font-weight: 800; font-size: 13px;
+}
+.tl .when { font-family: var(--font-mono); font-size: 12px; color: color-mix(in srgb, var(--c) 75%, var(--ink)); }
+.tl .what { font-size: 13px; font-weight: 500; }
+.todo { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.todo > b { font-family: var(--font-display); font-weight: 400; font-size: 18px; }
+
+/* responsive */
+@media (max-width: 1100px) {
+  .board { grid-template-columns: minmax(0,1fr); }
+  .panel, .panel.full { grid-column: 1 / -1; }
+}
+@media (max-width: 720px) {
+  .hero-in { grid-template-columns: minmax(0,1fr); justify-items: center; }
+  .mascot { width: 92px; }
+  .stamp { width: 132px; }
+  .stamp b { font-size: 21px; }
+  h1 { -webkit-text-stroke-width: 5px; text-shadow: 0 4px 0 var(--ink); }
+  .flow { flex-direction: column; }
+  .flow > .arr { transform: rotate(90deg); }
+  .node { flex-basis: auto; }
+  .tiles, .svc { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .aws-side { grid-template-columns: minmax(0,1fr); }
+  .split { grid-template-columns: minmax(0,1fr); }
+  .timeline { grid-template-columns: repeat(2, minmax(0,1fr)); row-gap: 14px; }
+  .timeline::before { display: none; }
+  .tag h2 { font-size: 20px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .stamp { animation: wobble 6s ease-in-out infinite; }
+  @keyframes wobble { 0%,100% { transform: rotate(-8deg); } 50% { transform: rotate(-3deg) scale(1.03); } }
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="arrow" viewBox="0 0 34 30">
+      <path d="M2 10h17V3l13 12-13 12v-7H2z" fill="#ffd23f" stroke="#1b2a4a" stroke-width="2.5" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="swap" viewBox="0 0 34 30">
+      <path d="M2 10l9-8v5h21v6H11v5z" fill="#ffd23f" stroke="#1b2a4a" stroke-width="2.2" stroke-linejoin="round"/>
+      <path d="M32 20l-9 8v-5H2v-6h21v-5z" fill="#ffd23f" stroke="#1b2a4a" stroke-width="2.2" stroke-linejoin="round"/>
+    </symbol>
+  </defs>
+</svg>
+
+<header class="hero">
+  <div class="hero-in">
+    <!-- 吉祥物：一张会眨眼的 PSA 10 评级卡砖 -->
+    <svg class="mascot" viewBox="0 0 120 160" role="img" aria-label="评级卡砖吉祥物">
+      <rect x="6" y="4" width="108" height="152" rx="14" fill="#eaf6ff" stroke="#1b2a4a" stroke-width="5"/>
+      <rect x="16" y="14" width="88" height="30" rx="6" fill="#e2425c" stroke="#1b2a4a" stroke-width="3.5"/>
+      <text x="60" y="35" text-anchor="middle" font-family="Baloo 2, sans-serif" font-weight="800" font-size="18" fill="#fff">PSA 10</text>
+      <rect x="20" y="52" width="80" height="92" rx="8" fill="#ffd23f" stroke="#1b2a4a" stroke-width="3.5"/>
+      <rect x="28" y="60" width="64" height="44" rx="5" fill="#7cc4ff" stroke="#1b2a4a" stroke-width="2.5"/>
+      <circle cx="47" cy="82" r="6" fill="#1b2a4a"/>
+      <circle cx="49" cy="80" r="2" fill="#fff"/>
+      <path d="M66 82q7-7 14 0" fill="none" stroke="#1b2a4a" stroke-width="4" stroke-linecap="round"/>
+      <path d="M48 94q12 9 24 0" fill="none" stroke="#1b2a4a" stroke-width="3.5" stroke-linecap="round"/>
+      <rect x="30" y="112" width="60" height="6" rx="3" fill="#1b2a4a" opacity=".35"/>
+      <rect x="30" y="124" width="40" height="6" rx="3" fill="#1b2a4a" opacity=".35"/>
+      <circle cx="104" cy="140" r="13" fill="#22a35a" stroke="#1b2a4a" stroke-width="3.5"/>
+      <path d="M97 140l5 5 9-10" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+
+    <div class="title-block">
+      <h1><span class="latin">VaultChain</span> <span style="white-space:nowrap">链上技术全景图</span></h1>
+      <div class="subtitle">评级卡托管交易 · HSK Chain × AWS × Cloudflare</div>
+    </div>
+
+    <div class="stamp" aria-label="2026.11 HSK Chain Horizon Hackathon Seoul">
+      <div><b>2026.11</b><span>HSK Horizon<br>Hackathon · Seoul</span></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+<div class="board">
+
+  <!-- 01 -->
+  <section class="panel full p-blue">
+    <div class="tag"><span class="no">01</span><h2>业务主链</h2></div>
+    <div class="flow">
+      <div class="node">
+        <div class="node-h"><i data-lucide="monitor-smartphone"></i>用户端</div>
+        <ul>
+          <li><b>市场 + 金库后台：</b>Next.js 15 · React 19</li>
+          <li><b>钱包：</b>wagmi · RainbowKit · viem</li>
+          <li><b>界面：</b>Tailwind · Recharts · 移动端适配</li>
+        </ul>
+      </div>
+      <div class="arr"><svg><use href="#arrow"/></svg></div>
+      <div class="node">
+        <div class="node-h"><i data-lucide="cloud"></i>入口</div>
+        <ul>
+          <li>Cloudflare Workers · OpenNext</li>
+          <li>Cloudflare DNS · vaultchain.asia</li>
+          <li>api. / agent. 直连 Elastic IP → Caddy 自动 TLS</li>
+        </ul>
+      </div>
+      <div class="arr"><svg><use href="#arrow"/></svg></div>
+      <div class="node">
+        <div class="node-h"><i data-lucide="server"></i>VaultChain API</div>
+        <ul>
+          <li>Fastify 5 · Node 22 · TypeScript · Zod</li>
+          <li>卡目录 · 挂单 · 出价 · 交换提案 · 报价</li>
+          <li>HSP 收银台 · 链上事件 indexer</li>
+        </ul>
+      </div>
+      <div class="arr"><svg><use href="#arrow"/></svg></div>
+      <div class="node">
+        <div class="node-h"><i data-lucide="link"></i>链上结算</div>
+        <ul>
+          <li>HSK Chain · 133 测试网 / 177 主网</li>
+          <li>USDC 押金 · 托管合约 · Vault NFT</li>
+          <li>Foundry · Solidity 0.8.28</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="chips">
+      <span class="chip"><i data-lucide="bot"></i>买家 Agent <small>Claude · tool use</small></span>
+      <span class="arr"><svg><use href="#swap"/></svg></span>
+      <span class="chip"><i data-lucide="handshake"></i>A2A 议价</span>
+      <span class="arr"><svg><use href="#swap"/></svg></span>
+      <span class="chip"><i data-lucide="store"></i>卖家 Agent <small>规则引擎 · 自动接受底价</small></span>
+      <span class="arr"><svg><use href="#arrow"/></svg></span>
+      <span class="chip"><i data-lucide="file-pen-line"></i>草拟订单</span>
+      <span class="arr"><svg><use href="#arrow"/></svg></span>
+      <span class="chip hot"><i data-lucide="wallet"></i>HSP 结算 <small>Agentic Payment MCP</small></span>
+      <span class="arr"><svg><use href="#arrow"/></svg></span>
+      <span class="chip"><i data-lucide="lock"></i>押金 / 货款直入 Escrow</span>
+    </div>
+
+    <div class="foot">共享：<b>pnpm workspace</b> · <b>@vaultchain/shared</b>（ABI · EIP-712 · CardKey · 定价数学）· <b>db</b>（Postgres）· <b>chain</b>（viem 客户端）· <b>hsp</b>（MCP 客户端）</div>
+  </section>
+
+  <!-- 02 -->
+  <section class="panel p-green">
+    <div class="tag"><span class="no">02</span><h2>多源公允价 → 链上预言机</h2></div>
+    <div class="chips">
+      <span class="chip"><i data-lucide="shopping-bag"></i>eBay <small>Browse · 成交</small></span>
+      <span class="chip"><i data-lucide="line-chart"></i>PriceCharting</span>
+      <span class="chip"><i data-lucide="tag"></i>Carousell</span>
+      <span class="chip"><i data-lucide="layers"></i>集换社</span>
+    </div>
+    <div class="chips">
+      <span class="chip"><i data-lucide="filter"></i>归一化 + 离群过滤</span>
+      <span class="arr"><svg><use href="#arrow"/></svg></span>
+      <span class="chip"><i data-lucide="sigma"></i>时间加权中位数</span>
+      <span class="arr"><svg><use href="#arrow"/></svg></span>
+      <span class="chip hot"><i data-lucide="pen-tool"></i>EIP-712 签名</span>
+      <span class="arr"><svg><use href="#arrow"/></svg></span>
+      <span class="chip"><i data-lucide="radio-tower"></i>CardPriceOracle</span>
+    </div>
+    <div class="formula">
+      <span class="eq">押金率 = clamp(10% + <em>2σ</em>, 10%, 30%)</span>
+      <p>σ 取该卡 30 日波动率。价格越不稳，双方押得越多，反悔成本越高。</p>
+    </div>
+    <div class="foot"><b>price-indexer</b>（Playwright 抓取，默认关闭）→ <b>oracle-publisher</b> · 价格证据快照存 S3</div>
+  </section>
+
+  <!-- 03 -->
+  <section class="panel p-purple">
+    <div class="tag"><span class="no">03</span><h2>合约矩阵</h2></div>
+    <div class="tiles">
+      <div class="tile"><code>CardPriceOracle</code><span>签名公允价 + 波动率</span></div>
+      <div class="tile"><code>VaultEscrow</code><span>双向押金出售状态机</span></div>
+      <div class="tile"><code>SwapEscrow</code><span>实物卡对卡托管交换</span></div>
+      <div class="tile"><code>VaultSwap</code><span>NFT ⇄ NFT 原子交换 + USDC 补差</span></div>
+      <div class="tile"><code>VaultCardNFT</code><span>一卡一币 · 赎回 / 场外锁</span></div>
+      <div class="tile"><code>VaultMarket</code><span>NFT ⇄ USDC 即时成交</span></div>
+    </div>
+    <div class="chips">
+      <span class="chip"><i data-lucide="shield-check"></i>OpenZeppelin 5.4</span>
+      <span class="chip"><i data-lucide="key-round"></i>ORACLE_SIGNER_ROLE</span>
+      <span class="chip"><i data-lucide="key-round"></i>RELAYER_ROLE</span>
+    </div>
+    <div class="foot"><b>Foundry 84 个测试</b>，含 fuzz：资金守恒 · 押金取整 · slab 锁</div>
+  </section>
+
+  <!-- 04 -->
+  <section class="panel p-orange">
+    <div class="tag"><span class="no">04</span><h2>托管交易生命周期</h2></div>
+    <div class="split">
+      <div class="chips">
+        <span class="chip"><i data-lucide="pen-line"></i>签约 · 双方锁押金</span>
+        <span class="arr"><svg><use href="#arrow"/></svg></span>
+        <span class="chip"><i data-lucide="truck"></i>寄卡至合作金库</span>
+        <span class="arr"><svg><use href="#arrow"/></svg></span>
+        <span class="chip"><i data-lucide="scan-search"></i>PSA cert 核验</span>
+        <span class="arr"><svg><use href="#arrow"/></svg></span>
+        <span class="chip hot"><i data-lucide="stamp"></i>验货结果链上签名</span>
+      </div>
+      <div class="branch">
+        <span class="chip"><i data-lucide="banknote"></i>放款给卖家</span>
+        <span class="chip"><i data-lucide="gem"></i>留库 · 铸 Vault NFT</span>
+      </div>
+    </div>
+    <div class="chips">
+      <span class="chip warn"><i data-lucide="undo-2"></i>任一方反悔</span>
+      <span class="arr"><svg><use href="#arrow"/></svg></span>
+      <span class="chip">赔付对方 <small>max(5%, 签约后价格变动)</small></span>
+    </div>
+    <div class="foot"><b>keeper</b>：把 HSP 付款记到链上 · 结算过期 deadline ｜ 收货地址 <b>AES-256-GCM</b> 加密</div>
+  </section>
+
+  <!-- 05 -->
+  <section class="panel p-teal">
+    <div class="tag"><span class="no">05</span><h2>AWS 部署 · ap-southeast-2</h2></div>
+    <div class="ec2">
+      <div class="node-h"><i data-lucide="box"></i>EC2 t3.medium · Docker Compose</div>
+      <div class="svc">
+        <div>caddy<small>:80 / :443 · 自动证书</small></div>
+        <div>api<small>:4000</small></div>
+        <div>agent<small>:4100</small></div>
+        <div>price-indexer<small>Chromium</small></div>
+        <div>oracle-publisher<small>EIP-712</small></div>
+        <div>keeper<small>relayer</small></div>
+      </div>
+    </div>
+    <div class="aws-side">
+      <span class="chip hot"><i data-lucide="map-pin"></i>Elastic IP <small>报给 HSP 白名单</small></span>
+      <span class="chip"><i data-lucide="database"></i>RDS PostgreSQL 16 <small>私有子网</small></span>
+      <span class="chip"><i data-lucide="lock-keyhole"></i>Secrets Manager <small class="mono">vaultchain/prod</small></span>
+      <span class="chip"><i data-lucide="archive"></i>S3 <small class="mono">vaultchain-evidence</small></span>
+      <span class="chip"><i data-lucide="scroll-text"></i>CloudWatch Logs <small>awslogs 驱动</small></span>
+      <span class="chip"><i data-lucide="shield"></i>安全组 <small>80/443 开放 · 22 限本机或 SSM</small></span>
+    </div>
+    <div class="foot">前端不在这台机器上：<b>vaultchain.asia → Cloudflare Worker</b></div>
+  </section>
+
+  <!-- 06 -->
+  <section class="panel p-indigo">
+    <div class="tag"><span class="no">06</span><h2>CI 与端到端验证</h2></div>
+    <div class="chips">
+      <span class="chip"><i data-lucide="git-branch"></i>push main / PR</span>
+      <span class="arr"><svg><use href="#arrow"/></svg></span>
+      <span class="chip"><i data-lucide="github"></i>GitHub Actions</span>
+    </div>
+    <div class="chips">
+      <span class="chip"><i data-lucide="hammer"></i>contracts <small class="mono">forge test -vv</small></span>
+    </div>
+    <div class="chips">
+      <span class="chip"><i data-lucide="package"></i>pnpm install</span>
+      <span class="arr"><svg><use href="#arrow"/></svg></span>
+      <span class="chip">typecheck</span>
+      <span class="arr"><svg><use href="#arrow"/></svg></span>
+      <span class="chip">test</span>
+      <span class="arr"><svg><use href="#arrow"/></svg></span>
+      <span class="chip">build</span>
+      <span class="arr"><svg><use href="#arrow"/></svg></span>
+      <span class="chip hot"><i data-lucide="cloud-upload"></i>build:cf <small>Worker 包</small></span>
+    </div>
+    <div class="chips">
+      <span class="chip"><i data-lucide="flask-conical"></i>anvil + Postgres + API indexer</span>
+      <span class="arr"><svg><use href="#arrow"/></svg></span>
+      <span class="chip">托管出售 + 卡对卡交换 <small>15 项检查</small></span>
+    </div>
+    <div class="foot">本地零依赖演示：无 <b>DATABASE_URL</b> 时 API 自动用内存示例目录</div>
+  </section>
+
+  <!-- 07 -->
+  <section class="panel p-red">
+    <div class="tag"><span class="no">07</span><h2>密钥与权限</h2></div>
+    <div class="flow">
+      <div class="node">
+        <div class="node-h"><i data-lucide="vault"></i>冷</div>
+        <ul>
+          <li>合约 admin 放在 <b>Safe 多签</b></li>
+          <li>密钥只存 Secrets Manager，不进仓库</li>
+        </ul>
+      </div>
+      <div class="node">
+        <div class="node-h"><i data-lucide="flame"></i>热</div>
+        <ul>
+          <li>预言机签名、relayer 各用独立低余额热钱包</li>
+          <li>链上只授予各自的 Role</li>
+        </ul>
+      </div>
+      <div class="node">
+        <div class="node-h"><i data-lucide="user-lock"></i>服务间</div>
+        <ul>
+          <li><b>INTERNAL_TOKEN</b>：卖家 Agent 读私密底价</li>
+          <li><b>CORS_ORIGINS</b> 只放行前端域名</li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot">HSP MCP 只接受白名单 IP 的调用，所以服务固定在 <b>Elastic IP</b> 后面</div>
+  </section>
+
+  <!-- 08 -->
+  <section class="panel p-green">
+    <div class="tag"><span class="no">08</span><h2>发布进度</h2></div>
+    <div class="timeline">
+      <div class="tl"><div class="dot">1</div><div class="when">11.26</div><div class="what">初始仓库：合约 · 交换 · 技术方案</div></div>
+      <div class="tl"><div class="dot">2</div><div class="when">11.26</div><div class="what">服务 · 市场前端 · infra</div></div>
+      <div class="tl"><div class="dot">3</div><div class="when">11.27</div><div class="what">补交易流程：slab 锁 · 物流 · 出价</div></div>
+      <div class="tl"><div class="dot">4</div><div class="when">11.27</div><div class="what">修 indexer 崩溃 · 加 e2e 脚本</div></div>
+      <div class="tl"><div class="dot">5</div><div class="when">11.27</div><div class="what">市场移动端布局</div></div>
+      <div class="tl"><div class="dot">6</div><div class="when">11.27</div><div class="what">前端上 Cloudflare Workers · vaultchain.asia</div></div>
+    </div>
+    <div class="todo">
+      <b>下一步</b>
+      <span class="chip warn"><i data-lucide="rocket"></i>合约部署到 HSK 测试网</span>
+      <span class="chip warn"><i data-lucide="plug"></i>对齐 HSP 线上工具 schema</span>
+      <span class="chip warn"><i data-lucide="bug"></i>验证 eBay 成交 / Carousell 抓取器</span>
+    </div>
+  </section>
+
+</div>
+</main>
+
+<script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+<script>
+  try { lucide.createIcons({ attrs: { 'stroke-width': 2.4 } }); } catch (e) {}
+</script>

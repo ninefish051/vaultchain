@@ -114,7 +114,7 @@ See [`.env.example`](.env.example) for contracts and [`infra/.env.example`](infr
 ## Deployment
 
 - **Frontend:** Cloudflare Workers (OpenNext adapter), DNS on Cloudflare. See [infra/cloudflare.md](infra/cloudflare.md).
-- **Services:** AWS ap-southeast-1: one EC2 instance with an Elastic IP (allow-listed by HSP) running `infra/docker-compose.yml`, RDS Postgres, Secrets Manager and CloudWatch Logs. See [infra/aws/README.md](infra/aws/README.md).
+- **Services:** AWS ap-southeast-2 (Sydney; the organization SCP allows only this region): one EC2 instance with an Elastic IP (allow-listed by HSP) running `infra/docker-compose.yml`, RDS Postgres, Secrets Manager and CloudWatch Logs. See [infra/aws/README.md](infra/aws/README.md).
 
 ## Status
 

@@ -4,7 +4,7 @@
 #   ./aws/load-secrets.sh prod >> .env
 set -euo pipefail
 ENV_NAME="${1:-prod}"
-REGION="${AWS_REGION:-ap-southeast-1}"
+REGION="${AWS_REGION:-ap-southeast-2}"
 aws secretsmanager get-secret-value \
   --region "$REGION" \
   --secret-id "vaultchain/${ENV_NAME}" \

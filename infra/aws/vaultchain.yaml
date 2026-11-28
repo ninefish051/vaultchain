@@ -1,0 +1,310 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  VaultChain services in ap-southeast-2 (Sydney): one EC2 host (Docker Compose) behind an Elastic IP,
+  RDS PostgreSQL 16 in private subnets, Secrets Manager, S3 evidence bucket, CloudWatch Logs.
+  No SSH: shell access is through SSM Session Manager. Deploy with infra/aws/deploy-stack.sh.
+
+Parameters:
+  Domain:
+    Type: String
+    Default: vaultchain.asia
+    Description: Apex domain. api.<Domain> and agent.<Domain> must point at the Elastic IP.
+  CorsOrigins:
+    Type: String
+    Description: Comma-separated frontend origins allowed to call api / agent.
+  ChainId:
+    Type: String
+    Default: "133"
+    AllowedValues: ["133", "177"]
+  RpcUrl:
+    Type: String
+    Default: https://testnet.hsk.xyz
+  RepoUrl:
+    Type: String
+    Default: https://github.com/ninefish051/vaultchain.git
+  RepoRef:
+    Type: String
+    Default: main
+  InstanceType:
+    Type: String
+    Default: t3.small   # Free account plan: only free-tier eligible types are allowed
+  DbInstanceClass:
+    Type: String
+    Default: db.t4g.micro
+  DbEngineVersion:
+    Type: String
+    Description: Full PostgreSQL 16 version (e.g. 16.x). deploy-stack.sh resolves the region default on first create.
+    AllowedPattern: "16\\.[0-9]+"
+  AmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+
+Resources:
+  # ---------- network ----------
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.40.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags: [{ Key: Name, Value: vaultchain }]
+
+  Igw:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags: [{ Key: Name, Value: vaultchain }]
+
+  IgwAttach:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties: { VpcId: !Ref Vpc, InternetGatewayId: !Ref Igw }
+
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.40.0.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      Tags: [{ Key: Name, Value: vaultchain-public-a }]
+
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.40.10.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      Tags: [{ Key: Name, Value: vaultchain-private-a }]
+
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.40.11.0/24
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      Tags: [{ Key: Name, Value: vaultchain-private-b }]
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags: [{ Key: Name, Value: vaultchain-public }]
+
+  PublicDefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: IgwAttach
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref Igw
+
+  PublicSubnetARoutes:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: { SubnetId: !Ref PublicSubnetA, RouteTableId: !Ref PublicRouteTable }
+
+  # Private subnets keep the VPC's main route table: no internet route, RDS only.
+
+  HostSg:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: VaultChain host - HTTP/HTTPS only, no SSH (use SSM)
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 80, ToPort: 80, CidrIp: 0.0.0.0/0, Description: Caddy ACME + redirect }
+        - { IpProtocol: tcp, FromPort: 443, ToPort: 443, CidrIp: 0.0.0.0/0, Description: api / agent }
+      Tags: [{ Key: Name, Value: vaultchain-host }]
+
+  DbSg:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: VaultChain RDS - Postgres from the host only
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 5432, ToPort: 5432, SourceSecurityGroupId: !Ref HostSg }
+      Tags: [{ Key: Name, Value: vaultchain-db }]
+
+  # ---------- data ----------
+  DbSubnets:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: VaultChain private subnets
+      SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
+
+  Db:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      Engine: postgres
+      EngineVersion: !Ref DbEngineVersion
+      DBInstanceClass: !Ref DbInstanceClass
+      AllocatedStorage: "20"
+      StorageType: gp3
+      StorageEncrypted: true
+      DBName: vaultchain
+      MasterUsername: vaultchain
+      ManageMasterUserPassword: true          # password lives in an RDS-managed secret
+      DBSubnetGroupName: !Ref DbSubnets
+      VPCSecurityGroups: [!Ref DbSg]
+      PubliclyAccessible: false
+      MultiAZ: false
+      BackupRetentionPeriod: 1          # Free account plan maximum
+      DeletionProtection: true
+      AutoMinorVersionUpgrade: true
+      Tags: [{ Key: Name, Value: vaultchain }]
+
+  # App secrets. INTERNAL_TOKEN is generated here; the other keys are added by
+  # infra/aws/put-secrets.sh, run by a person (never committed, never in this template).
+  AppSecret:
+    Type: AWS::SecretsManager::Secret
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Name: vaultchain/prod
+      Description: VaultChain service keys (JSON). Loaded on the host by load-secrets.sh.
+      GenerateSecretString:
+        SecretStringTemplate: "{}"
+        GenerateStringKey: INTERNAL_TOKEN
+        PasswordLength: 48
+        ExcludePunctuation: true
+
+  EvidenceBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub vaultchain-evidence-${AWS::AccountId}
+      VersioningConfiguration: { Status: Enabled }
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules: [{ ObjectOwnership: BucketOwnerEnforced }]
+
+  Logs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /vaultchain/prod
+      RetentionInDays: 30
+
+  # ---------- host ----------
+  HostRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: ec2.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: vaultchain-host
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ReadSecrets
+                Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource:
+                  - !Ref AppSecret
+                  - !GetAtt Db.MasterUserSecret.SecretArn
+              - Sid: Logs
+                Effect: Allow
+                # CreateLogGroup: the compose awslogs driver sets awslogs-create-group
+                Action: [logs:CreateLogGroup, logs:CreateLogStream, logs:PutLogEvents, logs:DescribeLogStreams]
+                Resource: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/vaultchain/prod*"
+              - Sid: Evidence
+                Effect: Allow
+                Action: [s3:GetObject, s3:PutObject]
+                Resource: !Sub "${EvidenceBucket.Arn}/*"
+              - Sid: EvidenceList
+                Effect: Allow
+                Action: s3:ListBucket
+                Resource: !GetAtt EvidenceBucket.Arn
+
+  HostProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties: { Roles: [!Ref HostRole] }
+
+  Host:
+    Type: AWS::EC2::Instance
+    DependsOn: PublicDefaultRoute
+    Properties:
+      ImageId: !Ref AmiId
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref HostProfile
+      NetworkInterfaces:
+        - DeviceIndex: "0"
+          SubnetId: !Ref PublicSubnetA
+          GroupSet: [!Ref HostSg]
+          AssociatePublicIpAddress: true
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs: { VolumeSize: 30, VolumeType: gp3, Encrypted: true }
+      MetadataOptions:
+        HttpTokens: required
+        HttpPutResponseHopLimit: 2
+      Tags: [{ Key: Name, Value: vaultchain-host }]
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -euxo pipefail
+          cat > /etc/vaultchain.env <<'EOF'
+          AWS_REGION=${AWS::Region}
+          DOMAIN=${Domain}
+          CORS_ORIGINS=${CorsOrigins}
+          CHAIN_ID=${ChainId}
+          RPC_URL=${RpcUrl}
+          REPO_URL=${RepoUrl}
+          REPO_REF=${RepoRef}
+          DB_HOST=${Db.Endpoint.Address}
+          DB_PORT=${Db.Endpoint.Port}
+          DB_SECRET_ARN=${Db.MasterUserSecret.SecretArn}
+          APP_SECRET_ID=vaultchain/prod
+          EVIDENCE_BUCKET=${EvidenceBucket}
+          EOF
+          dnf install -y git docker python3
+          mkdir -p /usr/local/lib/docker/cli-plugins
+          curl -fsSL "https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-linux-x86_64" \
+            -o /usr/local/lib/docker/cli-plugins/docker-compose
+          chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+          curl -fsSL "https://github.com/docker/buildx/releases/download/v0.17.1/buildx-v0.17.1.linux-amd64" \
+            -o /usr/local/lib/docker/cli-plugins/docker-buildx
+          chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx
+          # 4 GB swap: building five Node images on 2 GB RAM needs it
+          if [ ! -f /swapfile ]; then fallocate -l 4G /swapfile && chmod 600 /swapfile && mkswap /swapfile; fi
+          swapon /swapfile || true
+          grep -q /swapfile /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+          systemctl enable --now docker
+          git clone --recursive --branch "${RepoRef}" "${RepoUrl}" /opt/vaultchain
+          /opt/vaultchain/infra/aws/host-deploy.sh
+
+  HostEip:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags: [{ Key: Name, Value: vaultchain-host }]
+
+  HostEipAssoc:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt HostEip.AllocationId
+      InstanceId: !Ref Host
+
+Outputs:
+  ElasticIp:
+    Description: Give this to HSP for the allow-list; point api / agent DNS here (DNS only).
+    Value: !Ref HostEip
+  InstanceId:
+    Value: !Ref Host
+  DbEndpoint:
+    Value: !GetAtt Db.Endpoint.Address
+  AppSecretArn:
+    Value: !Ref AppSecret
+  EvidenceBucket:
+    Value: !Ref EvidenceBucket
