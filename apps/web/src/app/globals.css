@@ -67,7 +67,7 @@ body {
     will-change: transform;
   }
   .holo-wrap:hover .holo-card {
-    transition: transform 0.08s linear, box-shadow 0.25s ease-out;
+    transition: transform 0.2s ease-out, box-shadow 0.25s ease-out;
     box-shadow: 0 0 0 1px rgba(232, 184, 74, 0.35), 0 24px 60px -20px rgba(232, 184, 74, 0.25);
   }
   .holo-shine {
@@ -84,15 +84,24 @@ body {
   .holo-wrap:hover .holo-shine {
     opacity: 1;
   }
-  /* product tiles lift a little on hover */
+  /* product tiles: the tile itself never moves (a moving box slips out from under the pointer and
+     flickers between hover states); only the art zooms inside its clipped frame. */
   .tile-lift {
-    @apply transition duration-200 hover:-translate-y-0.5 hover:border-gold/50 hover:shadow-[0_16px_40px_-20px_rgba(232,184,74,0.35)];
+    @apply transition-[border-color,box-shadow] duration-300 hover:border-gold/50 hover:shadow-[0_16px_40px_-20px_rgba(232,184,74,0.35)];
+  }
+  .tile-lift img {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    transition: transform 0.4s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .tile-lift:hover img {
+    transform: translateZ(0) scale(1.04);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .holo-card,
-  .tile-lift {
+  .tile-lift img {
     transform: none !important;
     transition: none !important;
   }
