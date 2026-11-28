@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount } from "wagmi";
 import { useDeployment } from "@/lib/contracts";
+import { TestFaucet } from "./TestFaucet"; // TESTNET ONLY — remove before mainnet
 
 const NAV = [
   { href: "/market", label: "Market" },
@@ -55,6 +56,7 @@ export function Header() {
           VaultChain contracts are not deployed on this network (chain {chainId}). Browsing works; switch to HashKey Chain Testnet to trade.
         </div>
       )}
+      <TestFaucet /> {/* TESTNET ONLY — remove before mainnet */}
     </header>
   );
 }
