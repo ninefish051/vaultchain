@@ -8,7 +8,8 @@
     "start": "tsx src/main.ts",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "e2e": "tsx scripts/e2e-anvil.ts"
+    "e2e": "tsx scripts/e2e-anvil.ts",
+    "e2e:testnet": "tsx scripts/e2e-testnet.ts"
   },
   "dependencies": {
     "@fastify/cors": "11.4.1",
