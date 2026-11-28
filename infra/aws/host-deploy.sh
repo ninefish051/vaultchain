@@ -7,9 +7,11 @@
 #   keeper:            RELAYER_KEY set and contracts deployed on CHAIN_ID
 set -euo pipefail
 
+# export everything: the python step below reads these from the environment
+set -a
 # shellcheck disable=SC1091
 source /etc/vaultchain.env
-export AWS_REGION
+set +a
 REPO=/opt/vaultchain
 cd "$REPO"
 
