@@ -12,7 +12,7 @@ x-service: &service
     driver: awslogs
     options:
       awslogs-region: ${AWS_REGION:-ap-southeast-2}
-      awslogs-group: /vaultchain/${COMPOSE_PROJECT_NAME:-prod}
+      awslogs-group: ${AWS_LOG_GROUP:-/vaultchain/prod}
       awslogs-create-group: "true"
 
 services:
