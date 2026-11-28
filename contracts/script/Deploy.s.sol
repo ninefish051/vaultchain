@@ -24,10 +24,13 @@ import {MockUSDC} from "../test/mocks/MockUSDC.sol";
 ///
 /// Example:
 ///   forge script script/Deploy.s.sol --rpc-url hsk_testnet --broadcast
+///   forge script script/Deploy.s.sol --rpc-url hsk_testnet --broadcast --account vaultchain-deployer --sender <address>
 contract Deploy is Script {
     function run() external {
-        uint256 pk = vm.envUint("PRIVATE_KEY");
-        address deployer = vm.addr(pk);
+        // Either PRIVATE_KEY, or an encrypted keystore: --account <name> --sender <address>.
+        uint256 pk = vm.envOr("PRIVATE_KEY", uint256(0));
+        address deployer = pk != 0 ? vm.addr(pk) : msg.sender;
+        require(deployer != DEFAULT_SENDER, "Deploy: set PRIVATE_KEY or pass --account and --sender");
         address treasury = vm.envOr("TREASURY_ADDRESS", deployer);
         address oracleSigner = vm.envOr("ORACLE_SIGNER_ADDRESS", deployer);
         address relayer = vm.envOr("RELAYER_ADDRESS", deployer);
@@ -35,7 +38,8 @@ contract Deploy is Script {
         address usdcAddr = vm.envOr("USDC_ADDRESS", address(0));
         string memory baseURI = vm.envOr("NFT_BASE_URI", string("https://api.vaultchain.xyz/nft/"));
 
-        vm.startBroadcast(pk);
+        if (pk != 0) vm.startBroadcast(pk);
+        else vm.startBroadcast(deployer);
 
         if (usdcAddr == address(0)) {
             usdcAddr = address(new MockUSDC());
