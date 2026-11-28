@@ -39,6 +39,12 @@ Parameters:
     Type: String
     Default: ninefish051/vaultchain
     Description: owner/name of the repository whose main branch may deploy (GitHub Actions OIDC).
+  GitHubRepoImmutable:
+    Type: String
+    Default: ninefish051@51257671/vaultchain@1474093531
+    Description: >
+      The same repository in GitHub's immutable subject format (owner@id/name@id), which this repo uses.
+      gh api repos/OWNER/REPO/actions/oidc/customization/sub shows it as sub_claim_prefix.
   AmiId:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
@@ -321,7 +327,9 @@ Resources:
             Condition:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
-                token.actions.githubusercontent.com:sub: !Sub "repo:${GitHubRepo}:ref:refs/heads/main"
+                token.actions.githubusercontent.com:sub:
+                  - !Sub "repo:${GitHubRepo}:ref:refs/heads/main"
+                  - !Sub "repo:${GitHubRepoImmutable}:ref:refs/heads/main"
       Policies:
         - PolicyName: redeploy-host
           PolicyDocument:
