@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeftRight, Bot, LayoutGrid, Tag, User } from "lucide-react";
+import { ArrowLeftRight, LayoutGrid, ReceiptText, Tag, User } from "lucide-react";
 
 const TABS = [
   { href: "/market", label: "Market", icon: LayoutGrid, match: ["/market", "/cards", "/listings"] },
   { href: "/swap", label: "Swap", icon: ArrowLeftRight, match: ["/swap"] },
   { href: "/sell", label: "Sell", icon: Tag, match: ["/sell"] },
-  { href: "/agent", label: "Agent", icon: Bot, match: ["/agent"] },
-  { href: "/me", label: "Me", icon: User, match: ["/me", "/orders", "/swaps", "/assets", "/vault"] },
+  { href: "/orders", label: "Orders", icon: ReceiptText, match: ["/orders", "/swaps"] },
+  { href: "/me", label: "Me", icon: User, match: ["/me", "/assets", "/vault"] },
 ];
 
 /** Bottom navigation on phones (hidden from md up, where the header nav shows). */

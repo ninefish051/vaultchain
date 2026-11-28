@@ -3,17 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { ArrowLeftRight, Gem, LayoutGrid, ReceiptText, Tag } from "lucide-react";
 import { useAccount } from "wagmi";
 import { useDeployment } from "@/lib/contracts";
 import { TestFaucet } from "./TestFaucet"; // TESTNET ONLY — remove before mainnet
 
+// The Agent page stays reachable at /agent but is not linked until the agent is enabled.
 const NAV = [
-  { href: "/market", label: "Market" },
-  { href: "/swap", label: "Swap" },
-  { href: "/sell", label: "Sell" },
-  { href: "/agent", label: "Agent" },
-  { href: "/orders", label: "Orders" },
-  { href: "/assets", label: "Assets" },
+  { href: "/market", label: "Market", icon: LayoutGrid },
+  { href: "/swap", label: "Swap", icon: ArrowLeftRight },
+  { href: "/sell", label: "Sell", icon: Tag },
+  { href: "/orders", label: "Orders", icon: ReceiptText },
+  { href: "/assets", label: "My cards", icon: Gem },
 ];
 
 export function Header() {
@@ -34,10 +35,11 @@ export function Header() {
             <Link
               key={n.href}
               href={n.href}
-              className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition ${
                 path.startsWith(n.href) ? "bg-ink-700 text-gold" : "text-neutral-300 hover:text-white"
               }`}
             >
+              <n.icon className="h-4 w-4" />
               {n.label}
             </Link>
           ))}

@@ -45,7 +45,7 @@ function Market() {
 
   return (
     <div className="container-page">
-      <PageHeader title="Market" sub="Vault listings settle instantly as NFTs. Escrow listings are still with the seller and go through deposit, shipping and vault inspection." />
+      <PageHeader title="Market" sub="Instant buys from the vault, or escrow-protected buys from sellers." />
 
       {/* the same filter controls render inline on desktop and in a bottom sheet on phones */}
       {(() => {

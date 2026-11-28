@@ -2,16 +2,16 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeftRight, Bot, Gavel, LineChart, ShieldCheck, Vault } from "lucide-react";
+import { ArrowLeftRight, BadgeCheck, LineChart, Lock, ScanSearch, ShieldCheck, Store, TrendingUp, Vault } from "lucide-react";
 import { api } from "@/lib/api";
 import { CardTypeTile, ListingTile } from "@/components/CardTile";
 import { Section, Spinner } from "@/components/ui";
 
 const STEPS = [
-  { icon: Gavel, title: "Sign once, both lock a deposit", body: "Buyer and seller sign the terms on-chain. Each locks a deposit sized from the card's 30-day volatility, so nobody can walk away when the price moves." },
-  { icon: ShieldCheck, title: "Vault inspects the slab", body: "The seller ships to the vault. The cert is checked against PSA and the inspection result is signed on-chain." },
-  { icon: Vault, title: "Settle, ship or keep it vaulted", body: "Pay in full and the card ships to you, or stays in the vault as an NFT you can resell instantly or redeem any time." },
-  { icon: ArrowLeftRight, title: "Swap PSA 10 for PSA 10", body: "Trade card-for-card with a USDC top-up for the difference. Same two-sided protection, or instant when both cards are vaulted." },
+  { icon: Lock, title: "Both sides lock a deposit", body: "Nobody walks away when prices move." },
+  { icon: ScanSearch, title: "The vault checks the slab", body: "Cert verified, result signed on-chain." },
+  { icon: Vault, title: "Keep it or ship it", body: "Get an NFT, or have it delivered." },
+  { icon: ArrowLeftRight, title: "Swap card for card", body: "Top up the difference in USDC." },
 ];
 
 export default function Home() {
@@ -30,19 +30,18 @@ export default function Home() {
           <h1 className="mt-4 text-3xl font-bold leading-tight tracking-tight sm:text-5xl">
             Graded cards, traded <span className="text-gold">without refund games.</span>
           </h1>
-          <p className="mt-4 text-neutral-300">
-            Both sides lock a deposit. The vault inspects. The contract settles. Fair prices come from eBay, PriceCharting, Carousell and 集换社 sales,
-            signed on-chain.
-          </p>
+          <p className="mt-4 text-neutral-300">PSA, BGS and CGC slabs with escrow, vault inspection and on-chain fair prices.</p>
+          <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-neutral-300">
+            <span className="inline-flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-gold" /> Escrow protected</span>
+            <span className="inline-flex items-center gap-1.5"><BadgeCheck className="h-4 w-4 text-gold" /> Graded slabs only</span>
+            <span className="inline-flex items-center gap-1.5"><TrendingUp className="h-4 w-4 text-gold" /> Live fair value</span>
+          </div>
           <div className="mt-8 grid grid-cols-1 gap-3 sm:flex sm:flex-wrap">
             <Link href="/market" className="btn-gold">
-              Browse the market
+              <Store className="h-4 w-4" /> Shop the market
             </Link>
             <Link href="/swap" className="btn-ghost">
               <ArrowLeftRight className="h-4 w-4" /> Swap a card
-            </Link>
-            <Link href="/agent" className="btn-ghost">
-              <Bot className="h-4 w-4" /> Ask the agent
             </Link>
           </div>
         </div>
@@ -50,10 +49,14 @@ export default function Home() {
 
       <section className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {STEPS.map((s) => (
-          <div key={s.title} className="panel p-5">
-            <s.icon className="h-5 w-5 text-gold" />
-            <div className="mt-3 font-semibold">{s.title}</div>
-            <p className="muted mt-1.5 leading-relaxed">{s.body}</p>
+          <div key={s.title} className="panel flex items-start gap-3 p-4">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gold/10 text-gold">
+              <s.icon className="h-5 w-5" />
+            </span>
+            <div>
+              <div className="font-semibold">{s.title}</div>
+              <p className="mt-0.5 text-sm text-neutral-400">{s.body}</p>
+            </div>
           </div>
         ))}
       </section>

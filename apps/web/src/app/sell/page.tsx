@@ -93,7 +93,7 @@ function Sell() {
 
   return (
     <div className="container-page max-w-3xl">
-      <PageHeader title="Sell a graded card" sub="Only graded slabs (PSA, BGS, CGC). List a card that is already in the vault for instant sale, or a slab you still hold through escrow." />
+      <PageHeader title="Sell a graded card" sub="PSA, BGS and CGC slabs. Sell from the vault instantly, or through escrow." />
       <div className="mt-6 flex gap-2">
         {(["escrow", "vault"] as const).map((m) => (
           <button key={m} onClick={() => setMode(m)} className={`rounded-lg px-3 py-1.5 text-sm ${mode === m ? "bg-gold text-ink-900" : "bg-ink-700"}`}>
@@ -183,7 +183,7 @@ function Sell() {
           <div>
             <label className="label">Auto-accept floor (private, optional)</label>
             <input className="input" type="number" inputMode="decimal" min={0} value={floor || ""} onChange={(e) => setFloor(Number(e.target.value))} placeholder="e.g. 95% of your price" />
-            <p className="mt-1 text-xs text-neutral-500">Your seller agent accepts offers at or above this and counters below it. Never shown to buyers.</p>
+            <p className="mt-1 text-xs text-neutral-500">Offers at or above this are accepted automatically. Buyers never see it.</p>
           </div>
           <div>
             <label className="label">Swaps</label>

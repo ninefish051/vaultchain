@@ -4,16 +4,16 @@ import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeftRight, ShieldCheck, Vault } from "lucide-react";
+import { ArrowLeft, ArrowLeftRight, BadgeCheck, HandCoins, Lock, Package, Repeat, ScanSearch, ShieldCheck, Vault, Zap } from "lucide-react";
 import { useAccount, usePublicClient, useSignMessage, useSignTypedData } from "wagmi";
 import { toUsd6, vaultMarketAbi } from "@vaultchain/shared";
 import type { Abi } from "viem";
 import { api, type OrderQuote } from "@/lib/api";
 import { ensureAllowance, errorMessage, useDeployment, useTx } from "@/lib/contracts";
 import { bps, cardTitle, gradeLabel, short, usd } from "@/lib/format";
+import { ChoiceCard, ESCROW_STEPS, Fact, FairChip, HoloCard, InfoTip, Perk, StepBar } from "@/components/shop";
 import { buildOrderTerms, orderTypedData, toJson } from "@/lib/terms";
-import { CardImage } from "@/components/CardTile";
-import { Badge, Empty, KV, Spinner, TxStatus } from "@/components/ui";
+import { Badge, Empty, Spinner, TxStatus } from "@/components/ui";
 import { MobileActionBar } from "@/components/MobileTabBar";
 
 export default function ListingPage({ params }: { params: Promise<{ id: string }> }) {
@@ -80,35 +80,55 @@ export default function ListingPage({ params }: { params: Promise<{ id: string }
 
   return (
     <div className="container-page">
-      <Link href={`/cards/${l.cardKey}`} className="mt-8 inline-block text-xs text-neutral-400 hover:text-gold">
-        ← {l.card.name} prices
+      <Link href={`/cards/${l.cardKey}`} className="mt-8 inline-flex items-center gap-1 text-xs text-neutral-400 hover:text-gold">
+        <ArrowLeft className="h-3.5 w-3.5" /> {l.card.name} prices
       </Link>
       <div className="mt-3 grid gap-8 lg:grid-cols-[400px_1fr]">
-        <CardImage src={l.images[0] ?? l.card.imageUrl} alt={l.card.name} className="mx-auto aspect-[3/4] w-full max-w-[260px] border border-ink-600 sm:max-w-none" />
         <div>
+          <HoloCard src={l.images[0] ?? l.card.imageUrl} alt={l.card.name} className="mx-auto aspect-[3/4] w-full max-w-[280px] sm:max-w-none" />
+          <div className="mt-4 hidden flex-wrap justify-center gap-x-5 gap-y-2 lg:flex">
+            {l.type === "vault" ? (
+              <>
+                <Perk icon={Zap}>Instant settlement</Perk>
+                <Perk icon={Vault}>Stored in the vault</Perk>
+                <Perk icon={Package}>Redeem anytime</Perk>
+              </>
+            ) : (
+              <>
+                <Perk icon={ShieldCheck}>Escrow protected</Perk>
+                <Perk icon={ScanSearch}>Vault inspected</Perk>
+                <Perk icon={Lock}>Deposit-backed</Perk>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="min-w-0">
           <div className="flex flex-wrap gap-2">
             <Badge tone="gold">{gradeLabel(l.card)}</Badge>
             {l.type === "vault" ? (
-              <Badge tone="up"><Vault className="h-3 w-3" /> In vault · instant settlement</Badge>
+              <Badge tone="up"><Zap className="h-3 w-3" /> Buy instantly</Badge>
             ) : (
-              <Badge tone="blue"><ShieldCheck className="h-3 w-3" /> With seller · escrow + inspection</Badge>
+              <Badge tone="blue"><ShieldCheck className="h-3 w-3" /> Escrow + inspection</Badge>
             )}
-            {l.acceptsSwap && <Badge><ArrowLeftRight className="h-3 w-3" /> Open to swaps</Badge>}
+            {l.acceptsSwap && <Badge><ArrowLeftRight className="h-3 w-3" /> Swappable</Badge>}
+            {l.verified && <Badge tone="up"><BadgeCheck className="h-3 w-3" /> Cert verified</Badge>}
           </div>
           <h1 className="h-title mt-3">{cardTitle(l.card)}</h1>
           <div className="mt-1 text-sm text-neutral-400">
-            {l.card.grader} cert #{l.certNumber} · seller {short(l.seller)}
+            {l.card.grader} #{l.certNumber} · {short(l.seller)}
           </div>
 
           <div className="panel mt-6 p-5">
-            <div className="flex items-end justify-between">
+            <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <div className="label">Asking price</div>
-                <div className="text-3xl font-bold">{usd(l.priceUsd)}</div>
-              </div>
-              <div className="text-right text-sm">
-                <div className="text-neutral-400">Fair value</div>
-                <div className="font-semibold">{usd(l.price?.fairValueUsd)}</div>
+                <div className="text-4xl font-bold tracking-tight">{usd(l.priceUsd)}</div>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <FairChip price={l.priceUsd} fair={l.price?.fairValueUsd} />
+                  <span className="inline-flex items-center gap-1 text-xs text-neutral-400">
+                    Fair {usd(l.price?.fairValueUsd)}
+                    <InfoTip>Time-weighted median of recent sales (eBay, PriceCharting, Carousell), signed and published on-chain.</InfoTip>
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -116,47 +136,55 @@ export default function ListingPage({ params }: { params: Promise<{ id: string }
               <p className="muted mt-5">This is your listing. Manage it from <Link href="/assets" className="text-gold">Assets</Link>.</p>
             ) : l.type === "vault" ? (
               <>
-                <p className="muted mt-4">The NFT and USDC swap in one transaction. You can redeem the physical slab from the vault at any time.</p>
-                <button className="btn-gold mt-4 w-full" disabled={!isConnected || !deployment || tx.state.status === "pending"} onClick={buyVault}>
-                  {isConnected ? `Buy now for ${usd(l.priceUsd)}` : "Connect a wallet to buy"}
+                <button className="btn-gold mt-5 w-full py-3 text-base" disabled={!isConnected || !deployment || tx.state.status === "pending"} onClick={buyVault}>
+                  <Zap className="h-4 w-4" />
+                  {isConnected ? `Buy now · ${usd(l.priceUsd)}` : "Connect a wallet to buy"}
                 </button>
                 <TxStatus state={tx.state} />
               </>
             ) : (
               <>
-                <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="label">Your price (USD)</label>
-                    <input className="input" type="number" min={1} value={price || ""} onChange={(e) => setPrice(Number(e.target.value))} />
+                <div className="mt-5">
+                  <label className="label" htmlFor="price">Your price</label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500">$</span>
+                    <input id="price" className="input pl-7 text-lg font-semibold" type="number" min={1} value={price || ""} onChange={(e) => setPrice(Number(e.target.value))} />
                   </div>
-                  <div>
-                    <label className="label">After inspection</label>
-                    <select className="input" value={keepInVault ? "vault" : "ship"} onChange={(e) => setKeepInVault(e.target.value === "vault")}>
-                      <option value="vault">Keep in vault (mint NFT)</option>
-                      <option value="ship">Ship to me</option>
-                    </select>
+                </div>
+                <div className="mt-4">
+                  <div className="label">After the check</div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <ChoiceCard icon={Vault} title="Keep in vault" sub="Get an NFT, resell in one tap" selected={keepInVault} onSelect={() => setKeepInVault(true)} />
+                    <ChoiceCard icon={Package} title="Ship to me" sub="Delivered to your door" selected={!keepInVault} onSelect={() => setKeepInVault(false)} />
                   </div>
                 </div>
                 {quote && (
-                  <div className="mt-4 rounded-xl border border-ink-600 p-3">
-                    <KV k="Deposit per side" v={`${usd(quote.depositUsd, true)} (${bps(quote.depositBps)})`} />
-                    <KV k="vs fair value" v={`${quote.deviationPct > 0 ? "+" : ""}${quote.deviationPct}%`} />
-                    <KV k="Timeline" v="1d deposits · 3d ship · 2d inspect · 2d pay" />
-                    {quote.warnings.map((w) => (
-                      <div key={w} className="mt-1 text-xs text-gold">⚠ {w}</div>
-                    ))}
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    <Fact
+                      icon={Lock}
+                      label="Deposit"
+                      value={`${usd(quote.depositUsd, true)} · ${bps(quote.depositBps)}`}
+                      tip="Both sides lock the same deposit. Whoever backs out compensates the other. You get it back when the deal completes."
+                    />
+                    <Fact icon={ShieldCheck} label="You pay" value={usd(price)} tip="You pay the full price after the vault check passes. Your deposit comes back when the deal completes." />
                   </div>
                 )}
-                <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                  <button className="btn-gold" disabled={!isConnected || !deployment || !price} onClick={proposeOrder}>
-                    Sign escrow order
+                {quote?.warnings.map((w) => (
+                  <div key={w} className="mt-2 text-xs text-gold">{w}</div>
+                ))}
+                <div className="mt-5 rounded-xl border border-ink-600 bg-ink-900/40 px-2 py-4">
+                  <StepBar steps={ESCROW_STEPS} />
+                </div>
+                <div className="mt-5 grid gap-2 sm:grid-cols-[1.4fr_1fr]">
+                  <button className="btn-gold py-3 text-base" disabled={!isConnected || !deployment || !price} onClick={proposeOrder}>
+                    <ShieldCheck className="h-4 w-4" /> Buy with escrow
                   </button>
-                  <button className="btn-ghost" disabled={!isConnected || !price || price >= l.priceUsd} onClick={makeOffer}>
-                    Make an offer
+                  <button className="btn-ghost py-3" disabled={!isConnected || !price || price >= l.priceUsd} onClick={makeOffer}>
+                    <HandCoins className="h-4 w-4" /> Make an offer
                   </button>
                 </div>
-                <p className="mt-3 text-xs text-neutral-500">
-                  Signing costs nothing. Your deposit is only locked after the seller countersigns. If either side then backs out, their deposit compensates the other.
+                <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-neutral-500">
+                  <Lock className="h-3 w-3" /> Free to sign. Nothing is charged until the seller accepts.
                 </p>
               </>
             )}
@@ -167,7 +195,11 @@ export default function ListingPage({ params }: { params: Promise<{ id: string }
             )}
             {msg && <div className={`mt-3 text-sm ${msg.tone === "ok" ? "text-up" : "text-down"}`}>{msg.text}</div>}
           </div>
-          {l.swapWants && <p className="muted mt-3">Seller would swap for: {l.swapWants}</p>}
+          {l.swapWants && (
+            <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-ink-600 bg-ink-800 px-3 py-1.5 text-xs text-neutral-300">
+              <Repeat className="h-3.5 w-3.5 text-gold" /> Would swap for: <span className="text-white">{l.swapWants}</span>
+            </div>
+          )}
           {!deployment && isConnected && <p className="mt-3 text-xs text-gold">Switch to a network where VaultChain is deployed to trade.</p>}
         </div>
       </div>
@@ -183,7 +215,7 @@ export default function ListingPage({ params }: { params: Promise<{ id: string }
             </button>
           ) : (
             <button className="btn-gold flex-1" disabled={!isConnected || !deployment || !price} onClick={proposeOrder}>
-              {isConnected ? "Sign order" : "Connect wallet"}
+              {isConnected ? "Buy with escrow" : "Connect wallet"}
             </button>
           )}
         </MobileActionBar>

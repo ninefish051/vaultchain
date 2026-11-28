@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeftRight, ShieldCheck, Vault } from "lucide-react";
+import { ArrowLeftRight, Lock, PackageX, Receipt, ScanSearch, ShieldCheck, Truck, Zap } from "lucide-react";
+import { InfoTip, Perk } from "@/components/shop";
 import { api } from "@/lib/api";
 import { ListingTile } from "@/components/CardTile";
 import { Empty, PageHeader, Section, Spinner } from "@/components/ui";
@@ -16,22 +17,30 @@ export default function SwapHall() {
     <div className="container-page">
       <PageHeader
         title="Swap"
-        sub="Trade graded cards card-for-card, e.g. PSA 10 for PSA 10. The fair-value difference is settled with a USDC top-up. Raw cards are not supported."
+        sub="Trade card for card. Top up the difference in USDC."
       />
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <div className="panel p-5">
-          <Vault className="h-5 w-5 text-gold" />
-          <div className="mt-2 font-semibold">Both cards in the vault</div>
-          <p className="muted mt-1">One atomic transaction swaps the two NFTs and the top-up. No deposits, no shipping. $5 fee per side.</p>
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold/10 text-gold"><Zap className="h-5 w-5" /></span>
+          <div className="mt-3 font-semibold">Both cards in the vault</div>
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+            <Perk icon={Zap}>Instant swap</Perk>
+            <Perk icon={PackageX}>No shipping</Perk>
+            <Perk icon={Receipt}>$5 fee per side</Perk>
+          </div>
         </div>
         <div className="panel p-5">
-          <ShieldCheck className="h-5 w-5 text-gold" />
-          <div className="mt-2 font-semibold">One or both cards still physical</div>
-          <p className="muted mt-1">
-            Both sides sign and lock a deposit (sized from both cards&apos; volatility). Physical cards ship to the vault and are inspected one by one; then each side receives the other card. Whoever
-            fails to ship compensates the other.
-          </p>
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold/10 text-gold"><ShieldCheck className="h-5 w-5" /></span>
+          <div className="mt-3 flex items-center gap-1.5 font-semibold">
+            One or both cards still physical
+            <InfoTip>Whoever fails to ship compensates the other side from their deposit.</InfoTip>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+            <Perk icon={Lock}>Both lock a deposit</Perk>
+            <Perk icon={Truck}>Ship to the vault</Perk>
+            <Perk icon={ScanSearch}>Checked, then swapped</Perk>
+          </div>
         </div>
       </div>
 

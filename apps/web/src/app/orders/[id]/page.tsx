@@ -11,6 +11,9 @@ import { ShippingForm, VaultAddress } from "@/components/ShippingForm";
 import { Timeline } from "@/components/Timeline";
 import { Credits } from "@/components/Credits";
 import { Badge, Empty, KV, PageHeader, Spinner, TxStatus } from "@/components/ui";
+import { InfoTip } from "@/components/shop";
+import Link from "next/link";
+import { CircleCheck, Clock, CornerDownRight, Hourglass, PartyPopper, ScanSearch, Truck } from "lucide-react";
 
 const STEPS = ["Signed", "Deposits locked", "At the vault", "Inspection passed", "Paid", "Delivered"];
 const STEP_OF: Record<string, number> = { Signed: 0, Locked: 1, Inspecting: 2, PaymentWindow: 3, AwaitingDelivery: 5, Completed: 6, Disputed: 2 };
@@ -96,13 +99,26 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
             <KV k="Buyer" v={<span className="font-mono">{short(o.buyer)}{isBuyer && " (you)"}</span>} />
             <KV k="Seller" v={<span className="font-mono">{short(o.seller)}{isSeller && " (you)"}</span>} />
             <KV k="After inspection" v={o.fulfillment === 1 ? "Keep in vault (NFT)" : "Ship to buyer"} />
-            <KV k="Deposits" v={`buyer ${o.buyerDeposited ? "✓" : "—"} · seller ${o.sellerDeposited ? "✓" : "—"}`} />
+            <KV
+              k="Deposits"
+              v={
+                <span className="inline-flex items-center gap-3">
+                  {[["Buyer", o.buyerDeposited], ["Seller", o.sellerDeposited]].map(([who, paid]) => (
+                    <span key={who as string} className={`inline-flex items-center gap-1 ${paid ? "text-up" : "text-neutral-500"}`}>
+                      {paid ? <CircleCheck className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />} {who as string}
+                    </span>
+                  ))}
+                </span>
+              }
+            />
             <KV k="Current deadline" v={deadline ? `${new Date(deadline).toLocaleString()} (${timeLeft(deadline)})` : "—"} />
           </div>
         </div>
 
         <div className="panel p-5">
-          <div className="font-semibold">Your next step</div>
+          <div className="flex items-center gap-2 font-semibold">
+            <CornerDownRight className="h-4 w-4 text-gold" /> Your next step
+          </div>
           <div className="mt-3 grid gap-3">
             {due !== undefined && due > 0n && (
               <>
@@ -120,16 +136,48 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
             {status === "Locked" && isSeller && !expired && (
               <div className="grid gap-2">
                 <VaultAddress />
-                <p className="text-sm text-neutral-300">Then enter the tracking number. Only a hash of it goes on-chain.</p>
+                <p className="flex items-center gap-1.5 text-sm text-neutral-300">
+                  <Truck className="h-4 w-4 text-gold" /> Ship it, then add the tracking number
+                  <InfoTip>Only a hash of the tracking number is stored on-chain.</InfoTip>
+                </p>
                 <input className="input" placeholder="Courier + tracking number" value={tracking} onChange={(e) => setTracking(e.target.value)} />
                 <button className="btn-gold" disabled={!tracking} onClick={() => call("markShipped", [orderId, keccak256(toBytes(tracking.trim()))], "Marking shipped")}>
                   Mark as shipped
                 </button>
               </div>
             )}
-            {status === "Inspecting" && <p className="text-sm text-neutral-300">The vault is inspecting the card. You&apos;ll be able to pay once it passes.</p>}
-            {status === "AwaitingDelivery" && <p className="text-sm text-neutral-300">Paid. The vault is shipping the card to the buyer.</p>}
-            {status === "Completed" && <p className="text-sm text-up">Done. {o.fulfillment === 1 ? "The NFT is in the buyer's wallet." : "Delivered."}</p>}
+            {status === "Inspecting" && (
+              <p className="flex items-center gap-2 text-sm text-neutral-300">
+                <ScanSearch className="h-4 w-4 text-gold" /> The vault is checking the card.
+              </p>
+            )}
+            {status === "AwaitingDelivery" && (
+              <p className="flex items-center gap-2 text-sm text-neutral-300">
+                <Truck className="h-4 w-4 text-gold" /> Paid. The card is on its way to the buyer.
+              </p>
+            )}
+            {status === "Signed" && due === 0n && (
+              <p className="flex items-center gap-2 text-sm text-neutral-300">
+                <Hourglass className="h-4 w-4 text-gold" /> Waiting for the other side&apos;s deposit.
+              </p>
+            )}
+            {status === "Completed" && (
+              <div className="flex items-center gap-3 rounded-xl border border-up/30 bg-up/10 p-4">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-up/20 text-up">
+                  <PartyPopper className="h-5 w-5" />
+                </span>
+                <div className="text-sm">
+                  <div className="font-semibold text-white">Deal done</div>
+                  <div className="text-neutral-300">
+                    {o.fulfillment === 1 ? (
+                      <>The card is in the buyer&apos;s vault. {isBuyer && <Link href="/assets" className="text-gold underline">See my cards</Link>}</>
+                    ) : (
+                      "Delivered."
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
             {expired && claim[status] && (
               <button className="btn-danger" onClick={() => call(claim[status]![0], [orderId], claim[status]![1])}>
                 {claim[status]![1]}

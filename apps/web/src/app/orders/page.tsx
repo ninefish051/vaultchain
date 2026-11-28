@@ -114,7 +114,7 @@ export default function OrdersPage() {
   const open = (proposals.data ?? []).filter((p) => p.status === "open");
   return (
     <div className="container-page">
-      <PageHeader title="Orders & swaps" sub="Everything here settles through the escrow contracts. Status and deadlines are read from the chain." />
+      <PageHeader title="Orders & swaps" sub="Your buys, sales and swaps." />
       <Credits />
 
       <h2 className="mt-10 text-lg font-semibold">Waiting for signatures</h2>

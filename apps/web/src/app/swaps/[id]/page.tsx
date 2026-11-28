@@ -1,5 +1,9 @@
 "use client";
 
+import Link from "next/link";
+
+import { PartyPopper } from "lucide-react";
+
 import { use, useState } from "react";
 import { keccak256, toBytes, type Abi, type Hex } from "viem";
 import { useAccount, usePublicClient, useReadContract } from "wagmi";
@@ -126,14 +130,24 @@ export default function SwapPage({ params }: { params: Promise<{ id: string }> }
             {status === "Locked" && mySide >= 0 && s.legState[mySide as 0 | 1] === 0 && !expired && (
               <div className="grid gap-2">
                 <VaultAddress />
-                <p className="text-sm text-neutral-300">Then enter the tracking number.</p>
+                <p className="text-sm text-neutral-300">Ship it, then add the tracking number.</p>
                 <input className="input" placeholder="Courier + tracking number" value={tracking} onChange={(e) => setTracking(e.target.value)} />
                 <button className="btn-gold" disabled={!tracking} onClick={() => call("markShipped", [swapId, keccak256(toBytes(tracking.trim()))], "Marking shipped")}>
                   Mark as shipped
                 </button>
               </div>
             )}
-            {status === "Completed" && <p className="text-sm text-up">Swap complete. Check Assets for your new card.</p>}
+            {status === "Completed" && (
+              <div className="flex items-center gap-3 rounded-xl border border-up/30 bg-up/10 p-4 text-sm">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-up/20 text-up">
+                  <PartyPopper className="h-5 w-5" />
+                </span>
+                <div>
+                  <div className="font-semibold text-white">Swap done</div>
+                  <Link href="/assets" className="text-gold underline">See my cards</Link>
+                </div>
+              </div>
+            )}
             {mySide >= 0 && s.legs[(1 - mySide) as 0 | 1].delivery === 0 && !["Cancelled", "Defaulted", "Refunded", "Completed"].includes(status) && (
               <ShippingForm target="swap" targetId={swapId} title="Where should the vault ship the card you receive?" />
             )}

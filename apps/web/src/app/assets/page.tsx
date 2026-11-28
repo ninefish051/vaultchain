@@ -37,7 +37,7 @@ export default function AssetsPage() {
 
   return (
     <div className="container-page">
-      <PageHeader title="Your vault" sub="Cards held by the VaultChain vault and owned by your wallet as NFTs. Redeeming locks the NFT; it is burned when the vault hands over the slab." />
+      <PageHeader title="Your vault" sub="Cards you own, stored in the vault. Sell, swap or redeem them anytime." />
       <div className="panel mt-6 grid grid-cols-2 gap-6 p-5 sm:grid-cols-3">
         <Stat label="Cards" value={assets.data?.length ?? 0} />
         <Stat label="Value at fair price" value={usd(total)} />

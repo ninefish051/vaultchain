@@ -50,3 +50,53 @@ body {
     @apply text-sm text-neutral-400;
   }
 }
+
+/* ---- holo card: tilt toward the pointer with a foil sheen (detail pages) */
+@layer components {
+  .holo-wrap {
+    perspective: 900px;
+  }
+  .holo-card {
+    --rx: 0deg;
+    --ry: 0deg;
+    --mx: 50%;
+    --my: 50%;
+    transform: rotateX(var(--rx)) rotateY(var(--ry));
+    transition: transform 0.25s ease-out, box-shadow 0.25s ease-out;
+    box-shadow: 0 0 0 1px theme("colors.ink.600");
+    will-change: transform;
+  }
+  .holo-wrap:hover .holo-card {
+    transition: transform 0.08s linear, box-shadow 0.25s ease-out;
+    box-shadow: 0 0 0 1px rgba(232, 184, 74, 0.35), 0 24px 60px -20px rgba(232, 184, 74, 0.25);
+  }
+  .holo-shine {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
+    mix-blend-mode: color-dodge;
+    background:
+      radial-gradient(circle at var(--mx) var(--my), rgba(255, 255, 255, 0.35), transparent 45%),
+      linear-gradient(115deg, transparent 30%, rgba(255, 214, 120, 0.18) 45%, rgba(120, 200, 255, 0.18) 55%, transparent 70%);
+  }
+  .holo-wrap:hover .holo-shine {
+    opacity: 1;
+  }
+  /* product tiles lift a little on hover */
+  .tile-lift {
+    @apply transition duration-200 hover:-translate-y-0.5 hover:border-gold/50 hover:shadow-[0_16px_40px_-20px_rgba(232,184,74,0.35)];
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .holo-card,
+  .tile-lift {
+    transform: none !important;
+    transition: none !important;
+  }
+  .holo-shine {
+    display: none;
+  }
+}

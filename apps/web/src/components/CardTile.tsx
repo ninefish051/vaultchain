@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { ArrowLeftRight, ShieldCheck, Vault } from "lucide-react";
+import { ArrowLeftRight, ShieldCheck, Zap } from "lucide-react";
 import type { CardSummary, ListingView } from "@/lib/api";
 import { cardTitle, gradeLabel, usd } from "@/lib/format";
 import { Badge, Change } from "./ui";
+import { FairChip } from "./shop";
 
 export function CardImage({ src, alt, className = "" }: { src: string; alt: string; className?: string }) {
   return (
@@ -15,7 +16,7 @@ export function CardImage({ src, alt, className = "" }: { src: string; alt: stri
 
 export function CardTypeTile({ c }: { c: CardSummary }) {
   return (
-    <Link href={`/cards/${c.cardKey}`} className="panel group flex flex-col p-2 transition hover:border-gold/50 sm:p-3">
+    <Link href={`/cards/${c.cardKey}`} className="panel tile-lift group flex flex-col p-2 sm:p-3">
       <CardImage src={c.imageUrl} alt={c.name} className="aspect-[3/4]" />
       <div className="mt-3 flex items-center gap-1.5">
         <Badge tone="gold">{gradeLabel(c)}</Badge>
@@ -35,36 +36,32 @@ export function CardTypeTile({ c }: { c: CardSummary }) {
 }
 
 export function ListingTile({ l }: { l: ListingView }) {
-  const vsFair = l.price ? ((l.priceUsd - l.price.fairValueUsd) / l.price.fairValueUsd) * 100 : undefined;
   return (
-    <Link href={`/listings/${encodeURIComponent(l.id)}`} className="panel group flex flex-col p-2 transition hover:border-gold/50 sm:p-3">
+    <Link href={`/listings/${encodeURIComponent(l.id)}`} className="panel tile-lift group flex flex-col p-2 sm:p-3">
       <CardImage src={l.images[0] ?? l.card.imageUrl} alt={l.card.name} className="aspect-[3/4]" />
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
         <Badge tone="gold">{gradeLabel(l.card)}</Badge>
         {l.type === "vault" ? (
           <Badge tone="up">
-            <Vault className="h-3 w-3" /> Vault · instant
+            <Zap className="h-3 w-3" /> Instant
           </Badge>
         ) : (
           <Badge tone="blue">
-            <ShieldCheck className="h-3 w-3" /> Escrow · inspected
+            <ShieldCheck className="h-3 w-3" /> Escrow
           </Badge>
         )}
         {l.acceptsSwap && (
           <Badge>
-            <ArrowLeftRight className="h-3 w-3" /> Swap
+            <ArrowLeftRight className="h-3 w-3" />
+            <span className="sr-only">Swappable</span>
           </Badge>
         )}
-        {l.type === "escrow" && l.verified === false && <Badge tone="down">Cert unverified</Badge>}
+        {l.type === "escrow" && l.verified === false && <Badge tone="down">Unverified</Badge>}
       </div>
       <div className="mt-2 line-clamp-2 text-sm font-medium leading-snug group-hover:text-gold">{cardTitle(l.card)}</div>
       <div className="mt-auto flex flex-wrap items-baseline justify-between gap-x-2 pt-3">
         <div className="text-base font-semibold sm:text-lg">{usd(l.priceUsd)}</div>
-        {vsFair !== undefined && (
-          <span className={`whitespace-nowrap text-xs ${vsFair <= 0 ? "text-up" : "text-neutral-400"}`}>
-            {vsFair <= 0 ? `${Math.abs(vsFair).toFixed(1)}% below fair` : `${vsFair.toFixed(1)}% above fair`}
-          </span>
-        )}
+        <FairChip price={l.priceUsd} fair={l.price?.fairValueUsd} />
       </div>
     </Link>
   );
